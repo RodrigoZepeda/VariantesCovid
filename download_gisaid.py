@@ -27,8 +27,8 @@ sleep_time = 15
 MAGIC_USERNAME_KEY = 'GISAID'
 
 # Set your password once doing and using your USERNAME and PASSWORD for GISAID
-# keyring.set_password("GISAID", MAGIC_USERNAME_KEY, "USERNAME")
-# keyring.set_password("GISAID", "USERNAME", "PASSWORD")
+#keyring.set_password("GISAID_Download", MAGIC_USERNAME_KEY, "USERNAME")
+#keyring.set_password("GISAID_Download", "USERNAME", "PASSWORD")
 # and then DELETE the section
 
 usuario  = keyring.get_password('GISAID_Download', MAGIC_USERNAME_KEY)
