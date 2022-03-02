@@ -19,7 +19,7 @@ def latest_download_file():
 
 #Folder de descarga
 folder_of_download     = os.getcwd()
-direccion_chromedriver = '/usr/local/bin/chromedriver'
+direccion_chromedriver = '/usr/bin/chromedriver'
 
 #Tiempo de espera
 sleep_time = 15
