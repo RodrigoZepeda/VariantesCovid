@@ -10,6 +10,8 @@ Los datos necesitas obtenerlos de [GISAID](https://www.gisaid.org/) yendo a `Dow
 
 Alternativamente puedes usar el scrapper (por desarrollar) con tu password y tu usuario. 
 
+![Variantes de COVID Nacional](images/barplot.png)
+
 ## Referencias de GISAID
 
 Khare, S., et al (2021) _GISAID’s Role in Pandemic Response._ China CDC Weekly, 3(49): 1049-1051. [doi:10.46234/ccdcw2021.255](doi:10.46234/ccdcw2021.255)  PMCID: 8668406

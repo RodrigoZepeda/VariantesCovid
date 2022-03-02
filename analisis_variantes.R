@@ -1,6 +1,8 @@
 #DATOS DE https://www.epicov.org/epi3/frontend#62aa9e
 #VARIANT SURVEILLANCE
 rm(list = ls())
+
+library(covidmx)
 library(tidyverse)
 library(lubridate)
 library(ggstream)
@@ -8,13 +10,17 @@ library(MetBrewer)
 library(latexpdf)
 library(cowplot)
 
-setwd("~/GISAID VARIANTES")
 
 #Lectura de la base
-variant_surveillance <- read_delim("variant_surveillance.tsv",
-                                   delim = "\t", escape_double = FALSE,
-                                   trim_ws = TRUE)
+#------------------------------------------------
+fname                <- list.files(pattern = "variant_surveillance_tsv*", full.names = T)
+tsv_name             <- untar(fname, list = TRUE)  
+tsv_name             <- tsv_name[which(str_detect(tsv_name,".tsv"))]
+untar(fname, as.character(tsv_name))
+variant_surveillance <- read_delim(tsv_name, delim = "\t", escape_double = FALSE, trim_ws = TRUE)
 
+#Filtro para México
+#------------------------------------------------
 mx_surveillance <- variant_surveillance %>%
   filter(str_detect(Location,"Mexico")) %>%
   filter(`Is complete?`) %>%
@@ -120,4 +126,74 @@ legend <- get_legend(
 # the width of one plot (via rel_widths).
 plot_grid(sqplot, legend, ncol = 1, rel_heights = c(1, 0.1))
 ggsave("images/Regiones_variantes.png", width = 10, height = 8, dpi = 750)
+
+
+#GRÁFICA DE BARRAS
+if (!require(covidmx)){
+  devtools::install_github("RodrigoZepeda/covidmx")
+  library(covidmx)
+}
+
+if (require(covidmx)){
+  covid        <- descarga_datos_abiertos()
+  ambulatorios <- covid %>% casos(group_by_entidad = F,
+                                  tipo_caso    = "Sospechosos y Confirmados COVID")
+  
+  ambulatorios <- ambulatorios %>%
+    filter(FECHA_SINTOMAS <= max(ambulatorios$FECHA_SINTOMAS) - 7)
+  
+  ambulatorios <- ambulatorios %>%
+    mutate(SEMANA = epiweek(FECHA_SINTOMAS)) %>%
+    mutate(AÑO = year(FECHA_SINTOMAS)) %>%
+    group_by(SEMANA, AÑO) %>%
+    summarise(casos = sum(Casos_SOSPECHOSOS_Y_CONFIRMADOS_COVID)) %>%
+    ungroup()
+  
+  ambulatorios <- ambulatorios %>%
+    mutate(fecha_proxy = ymd(paste0(AÑO,"/01/03")) + weeks(SEMANA)) 
+  
+  vcount <- mx_surveillance %>%
+    mutate(Variant = if_else(str_detect(`Pango lineage`,"BA.2") & str_detect(Variant, "Omicron"), "Omicron BA.2", Variant)) %>%
+    group_by(Variant, Semana, Año) %>%
+    tally() %>%
+    ungroup() %>%
+    mutate(Variant = word(Variant, 1,2, sep = " ")) %>%
+    mutate(fecha_proxy = ymd(paste0(Año,"/01/03")) + weeks(Semana)) %>%
+    filter(fecha_proxy > ymd("2021-03-20"))
+  
+  vprop <- vcount %>%
+    group_by(Semana, Año, fecha_proxy) %>%
+    summarise(Total = sum(n), .groups = "keep") 
+  
+  vcount <- vcount %>% 
+    left_join(vprop, by = c("fecha_proxy","Semana","Año")) %>%
+    mutate(Prop = n/Total) %>%
+    filter(fecha_proxy > ymd("2021-03-20") & year(fecha_proxy) <= year(today()))
+  
+  vcount <- vcount %>%
+    left_join(ambulatorios, 
+              by = c("fecha_proxy", "Año" = "AÑO", "Semana" = "SEMANA"))
+  
+  vcount <- vcount %>%
+    mutate(Casos_variante = casos*Prop)
+  
+  ggplot(vcount) +
+    geom_col(aes(x = fecha_proxy, y = Casos_variante, fill = Variant)) +
+    theme_classic() +
+    labs(
+      y = "Casos de enfermedad respiratoria",
+      x = "Fecha",
+      title = "Casos de enfermedad respiratoria en México (2021-2022)",
+      subtitle = "Datos Abiertos COVID-19"
+    ) +
+    scale_y_continuous(labels = scales::comma) +
+    scale_x_date(date_labels = "%B-%y") +
+    scale_fill_manual("Variant", values = met.brewer("Hiroshige", 12, "continuous")) 
+  ggsave("images/barplot.png", width = 8, height = 4, dpi = 750)
+} else {
+  warning("No realizamos la gráfica de barras pues no cuentas con covidmx. ¡Descárgalo!")
+}
+
+#Delete downloaded file
+file.remove(fname)
 
