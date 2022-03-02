@@ -1,5 +1,7 @@
 # VariantesCOVID
 
+![Variantes por región en México dividido en Norte, Sur, Centro y la combinación de Oriente + Oeste](images/Regiones_variantes.png)
+
 Gráficas que ilustran la proporción de casos de COVID-19 por variante en México. 
 
 ## Datos
