@@ -1,0 +1,10 @@
+name: GISAID
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.9
+  - selenium
+  - pandas
+  - keyring
+prefix: /usr/local/Caskroom/miniconda/base/envs/GISAID
