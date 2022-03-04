@@ -36,6 +36,8 @@ MAGIC_USERNAME_KEY = 'GISAID'
 usuario  = keyring.get_password('GISAID_Download', MAGIC_USERNAME_KEY)
 password = keyring.get_password('GISAID_Download', usuario)
 
+print("Reading keyring")
+
 option = webdriver.ChromeOptions()
 option.add_argument('--disable-gpu')
 option.add_argument("-incognito")
@@ -49,6 +51,7 @@ option.add_experimental_option("prefs", {
 })
 
 #Click on login
+print("Opening chrome")
 browser = webdriver.Chrome(executable_path=direccion_chromedriver, options=option)
 browser.set_window_size(1000,1000)
 browser.get("https://www.gisaid.org/")

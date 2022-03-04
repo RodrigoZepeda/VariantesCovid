@@ -14,6 +14,18 @@ Alternativamente puedes usar el scrapper `download_gisaid.py` con tu password y 
 
 ![Variantes de COVID Nacional](images/barplot.png)
 
+## Automatización
+
+Para Linux puedes usar `crontab` para automatizar la descarga de la base de datos. Por ahora necesitas `mariadb` para que `R` los transforme. Sugerencia: 
+
+1. Crea tu crontab parecido a este:
+
+```{bash} 
+57 14 * * * export DISPLAY=:0 && /bin/sh /home/rodrigo/VariantesCovid/orchestrate.sh > /dev/null 2>&1
+```
+
+donde tu número de display se obtiene haciendo
+
 ## Referencias de GISAID
 
 Khare, S., et al (2021) _GISAID’s Role in Pandemic Response._ China CDC Weekly, 3(49): 1049-1051. [doi:10.46234/ccdcw2021.255](doi:10.46234/ccdcw2021.255)  PMCID: 8668406
