@@ -4,6 +4,7 @@ variant_surveillance.tsv
 *.csv
 *.tar.xz
 Rplots.pdf
+gisaid_user_password.txt
 
 # User-specific stuff
 .idea/

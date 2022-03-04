@@ -3,7 +3,6 @@
 
 import pandas as pd
 import os
-import keyring
 from selenium import webdriver
 from selenium.webdriver.support.select import Select
 import time
@@ -26,7 +25,12 @@ direccion_chromedriver = '/usr/bin/chromedriver'
 #Tiempo de espera
 sleep_time = 15
 
-MAGIC_USERNAME_KEY = 'GISAID'
+#Usuario y password en txt
+a_file = open("gisaid_user_password.txt")
+usuario, password = a_file.readlines()
+usuario = str.rsplit(usuario)[0]
+
+
 print("Opening GISAID")
 
 # Set your password once doing and using your USERNAME and PASSWORD for GISAID
@@ -34,10 +38,6 @@ print("Opening GISAID")
 #keyring.set_password("GISAID_Download", "USERNAME", "PASSWORD")
 # and then DELETE the section
 
-usuario  = keyring.get_password('GISAID_Download', MAGIC_USERNAME_KEY)
-password = keyring.get_password('GISAID_Download', usuario)
-
-print("Reading keyring")
 
 option = webdriver.ChromeOptions()
 option.add_argument('--disable-gpu')

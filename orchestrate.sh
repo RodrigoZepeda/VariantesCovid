@@ -4,7 +4,7 @@
 #Author: Rodrigo Zepeda
 #Contact: rzepeda17[at]gmail.com
 #----------------------------------------
-source $HOME/.keychain/${HOSTNAME}-sh
+. ~/.keychain/`/bin/hostname`-sh
 cd /home/rodrigo/VariantesCovid
 date=$(date '+%Y-%m-%d')
 /home/rodrigo/miniconda3/envs/GISAID/bin/python3 /home/rodrigo/VariantesCovid/download_gisaid.py
