@@ -27,6 +27,7 @@ direccion_chromedriver = '/usr/bin/chromedriver'
 sleep_time = 15
 
 MAGIC_USERNAME_KEY = 'GISAID'
+print("Opening GISAID")
 
 # Set your password once doing and using your USERNAME and PASSWORD for GISAID
 #keyring.set_password("GISAID_Download", MAGIC_USERNAME_KEY, "USERNAME")
