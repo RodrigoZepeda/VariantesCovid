@@ -9,6 +9,8 @@ from selenium.webdriver.support.select import Select
 import time
 from selenium.webdriver.common.keys import Keys
 
+print("Running python")
+
 #https://stackoverflow.com/questions/34338897/python-selenium-find-out-when-a-download-has-completed
 def latest_download_file():
     files = sorted(os.listdir(os.getcwd()), key=os.path.getmtime)
