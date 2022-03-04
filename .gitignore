@@ -3,6 +3,7 @@ variant_surveillance.tsv
 .DS_Store
 *.csv
 *.tar.xz
+Rplots.pdf
 
 # User-specific stuff
 .idea/
