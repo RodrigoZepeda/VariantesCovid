@@ -1,5 +1,6 @@
 #DATOS DE https://www.epicov.org/epi3/frontend#62aa9e
 #VARIANT SURVEILLANCE
+#https://github.com/guillermodeandajauregui/covid19mx-sql/blob/main/data_loader.R
 rm(list = ls())
 
 library(covidmx)
@@ -9,7 +10,12 @@ library(ggstream)
 library(MetBrewer)
 library(latexpdf)
 library(cowplot)
+library(DBI)
+library(odbc)
+library(RMariaDB)
+library(glue)
 
+flag <- FALSE
 
 #Lectura de la base
 #------------------------------------------------
@@ -17,30 +23,74 @@ fname                <- list.files(pattern = "variant_surveillance_tsv*", full.n
 tsv_name             <- untar(fname, list = TRUE)  
 tsv_name             <- tsv_name[which(str_detect(tsv_name,".tsv"))]
 untar(fname, as.character(tsv_name))
-variant_surveillance <- read_delim(tsv_name, delim = "\t", escape_double = FALSE, trim_ws = TRUE)
+
+#Creamos el MARIADB
+#------------------------------------------------
+con    <- dbConnect(RMariaDB::MariaDB(), 
+                    user     = Sys.getenv("MariaDB_user"), 
+                    password = Sys.getenv("MariaDB_password"),
+                    dbname = "COVID")
+
+header <- read_delim(tsv_name, delim = "\t", n_max = 100, escape_double = FALSE, 
+                     trim_ws = TRUE)
+
+dbSendStatement(conn = con, statement = "SET sql_mode = 'NO_ENGINE_SUBSTITUTION,NO_AUTO_CREATE_USER';")
+dbWriteTable(conn = con, name = "variant_surveillance", value = header, 
+                    overwrite = T)
+dbSendStatement(conn = con, statement = "DELETE FROM variant_surveillance;")
+
+for (colname in c("Clade","`Pango lineage`","`AA Substitutions`","Location","Type","`Accession ID`","Variant","Host")){
+  longtext <- glue("ALTER TABLE variant_surveillance MODIFY {colname} TEXT;")
+  dbSendStatement(conn = con, statement = longtext)
+}
+
+logicols <- sapply(header, typeof)
+for (colname in names(logicols[which(logicols == "logical")])){
+  longtext <- glue("ALTER TABLE variant_surveillance MODIFY \`{colname}\` TEXT;")
+  dbSendStatement(conn = con, statement = longtext)
+}
+
+mi_query <- glue("LOAD DATA LOCAL INFILE \'{tsv_name}\' ", 
+                 "REPLACE INTO TABLE variant_surveillance ", 
+                 "CHARACTER SET UTF8 ", 
+                 "COLUMNS TERMINATED BY '\\t' ", 
+                 "LINES TERMINATED BY '\\n' ", 
+                 "IGNORE 1 LINES;")
+dbSendStatement(conn = con, statement = mi_query)
+dbSendStatement(con, "SHOW COLUMNS FROM variant_surveillance")
+variant_surveillance <- tbl(con, "variant_surveillance")
+
+#Tets if works
+#res <- dbSendQuery(conn = con, "SELECT * FROM variant_surveillance LIMIT 10")
+#dbFetch(res)
+#dbClearResult(res)
 
 #Filtro para México
 #------------------------------------------------
 mx_surveillance <- variant_surveillance %>%
   filter(str_detect(Location,"Mexico")) %>%
-  filter(`Is complete?`) %>%
   filter(!str_detect(Location,"New Mexico")) %>%
-  filter(!is.na(Variant)) %>%
-  mutate(`Collection date` = ymd(`Collection date`)) %>%
+  filter(`Is complete?` == "True") %>%
+  filter(Variant != "") %>%
+  collapse() %>%
+  as.data.frame %>%
+  mutate(`Collection date` = as.Date(`Collection date`)) %>%
   filter(!is.na(`Collection date`)) %>%
+  filter(`Collection date` <= today()) %>%
   mutate(Semana = epiweek(`Collection date`)) %>%
   mutate(Año = year(`Collection date`)) %>%
-  filter(Año <= year(today()))
+  mutate(Variant = if_else(str_detect(`Pango lineage`,"BA.2") & str_detect(Variant, "Omicron"), "Omicron BA.2", Variant)) %>%
+  mutate(Variant = word(Variant, 1,2, sep = " ")) 
+
+variantes <- unique(mx_surveillance$Variant)
 
 #Función para procesamiento
-plot_state <- function(mx_surveillance, plot_name, title_name, subtitle_name = ""){
-
+plot_state <- function(mx_surveillance, plot_name, title_name, subtitle_name = "", variantes){
+  
   vcount <- mx_surveillance %>%
-    mutate(Variant = if_else(str_detect(`Pango lineage`,"BA.2") & str_detect(Variant, "Omicron"), "Omicron BA.2", Variant)) %>%
     group_by(Variant, Semana, Año) %>%
     tally() %>%
     ungroup() %>%
-    mutate(Variant = word(Variant, 1,2, sep = " ")) %>%
     mutate(fecha_proxy = ymd(paste0(Año,"/01/03")) + weeks(Semana)) %>%
     filter(fecha_proxy > ymd("2021-03-20"))
   
@@ -54,6 +104,8 @@ plot_state <- function(mx_surveillance, plot_name, title_name, subtitle_name = "
     filter(fecha_proxy > ymd("2021-03-20") & year(fecha_proxy) <= year(today()))
   
   Sys.setlocale(locale="es_ES.UTF-8")
+  colores        <- met.brewer("Hiroshige", length(variantes), "continuous")
+  names(colores) <- variantes
   variantplot <- ggplot(vcount) +
     geom_stream(aes(x = fecha_proxy, y = n, fill = Variant), type = "proportional", alpha = 1) +
     theme_minimal() +
@@ -65,7 +117,7 @@ plot_state <- function(mx_surveillance, plot_name, title_name, subtitle_name = "
     ) +
     scale_x_date(date_labels = "%B %y", date_breaks = "3 months",
                  date_minor_breaks = "1 month") +
-    scale_fill_manual("Variante", values = met.brewer("Hiroshige", 12, "continuous"))
+    scale_fill_manual("Variante", values = colores)
   ggsave(plot_name, variantplot, width = 10, height = 4, dpi = 750)
   
   return(variantplot)
@@ -77,43 +129,66 @@ plot_state <- function(mx_surveillance, plot_name, title_name, subtitle_name = "
 
 #NACIONAL
 #------------------------------------------------------------------------
-plot_state(mx_surveillance, "images/Variantes_Nacional.png", "México")
+plot_state(mx_surveillance, "images/Variantes_Nacional.png", "México", variantes =  variantes)
 
 #CIUDAD DE MÉXICO 
 #------------------------------------------------------------------------
 mx_surveillance %>%
-  filter(str_detect(Location,"Mexico City|CDMX|CMX|Distrito Federal|Ciudad de Mexico|Mexico city")) %>%
-  plot_state("images/Variantes_CDMX.png", "CDMX")
+  filter(str_detect(Location, 
+                    paste0("Mexico City|CDMX|CMX|Distrito Federal",
+                           "|Ciudad de Mexico|Mexico city"))) %>%
+  plot_state("images/Variantes_CDMX.png", "CDMX", variantes = variantes)
 
 #NORTE
 #------------------------------------------------------------------------
 norte <- mx_surveillance %>%
-  filter(str_detect(Location,"Baja California|Baja California Sur|Chihuahua|Coahuila|Sinaloa|Sonora|Durango|Nuevo Leon|Nuevo León|Tamaulipas|Mexicali|Ensenada|Tijuana|Hermosillo|Monterrey|Guasave|Ahome|Los Mochis|Saltillo|Torreon|Ciudad Juarez|")) %>%
-  plot_state("images/Variantes_NORTE.png", "Región Norte", "BC, BCS, CHIH, COAH, SIN, SON, DGO, NL, TAM")
+  filter(str_detect(Location,
+                    paste0("Baja California|Baja California Sur|Chihuahua|",
+                           "Coahuila|Sinaloa|Sonora|Durango|Nuevo Leon|",
+                           "Nuevo León|Tamaulipas|Mexicali|Ensenada|Tijuana|",
+                           "Hermosillo|Monterrey|Guasave|Ahome|Los Mochis|",
+                           "Saltillo|Torreon|Ciudad Juarez|"))) %>%
+  plot_state("images/Variantes_NORTE.png", "Región Norte", 
+             "BC, BCS, CHIH, COAH, SIN, SON, DGO, NL, TAM", variantes)
 
 #CENTRO
 #------------------------------------------------------------------------
 centro <- mx_surveillance %>%
-  filter(str_detect(Location,"Aguascalientes|Guanajuato|Querétaro|Queretaro|Zacatecas|San Luis Potosi|San Luis Potosí|Mexico City|CDMX|CMX|Distrito Federal|Ciudad de Mexico|Mexico city|Estado de México|Edomex|EDOMEX|Estado de mexico|Estado de Mexico|State of Mexico|Mexico / Mexico|State of mexico|Estado de méxico|Morelos")) %>%
-  plot_state("images/Variantes_CENTRO.png", "Región Centro", "AGS, GRO, QRO, ZAC, SLP, CDMX, EDOMEX, MOR")
+  filter(str_detect(Location,
+                    paste0("Aguascalientes|Guanajuato|Querétaro|Queretaro|",
+                           "Zacatecas|San Luis Potosi|San Luis Potosí|",
+                           "Mexico City|CDMX|CMX|Distrito Federal|",
+                           "Ciudad de Mexico|Mexico city|Estado de México|",
+                           "Edomex|EDOMEX|Estado de mexico|Estado de Mexico|",
+                           "State of Mexico|Mexico / Mexico|State of mexico|",
+                           "Estado de méxico|Morelos"))) %>%
+  plot_state("images/Variantes_CENTRO.png", "Región Centro", 
+             "AGS, GRO, QRO, ZAC, SLP, CDMX, EDOMEX, MOR", variantes)
 
 #SUR
 #------------------------------------------------------------------------
 sur <- mx_surveillance %>%
-  filter(str_detect(Location,"Chiapas|Guerrero|Guerero|Oaxaca|Mérida|Campeche|Quintana Roo|Tabasco|Yucatán|Yucatan|Cancun")) %>%
-  plot_state("images/Variantes_SUR.png", "Región Sur", "CHIS, GUE, OAX, QROO, CAM, TAB, YUC")
+  filter(str_detect(Location,
+                    paste0("Chiapas|Guerrero|Guerero|Oaxaca|Mérida|Campeche|",
+                           "Quintana Roo|Tabasco|Yucatán|Yucatan|Cancun"))) %>%
+  plot_state("images/Variantes_SUR.png", "Región Sur", 
+             "CHIS, GUE, OAX, QROO, CAM, TAB, YUC", variantes)
 
 #ORTIENTE + OESTE
 #------------------------------------------------------------------------
 oriente_oeste <- mx_surveillance %>%
-  filter(str_detect(Location,"Colima|Jalisco|Michoacan|Michoacán|Nayarit|Hidalgo|Puebla|Tlaxcala|Veracruz")) %>%
-  plot_state("images/Variantes_Oriente_y_Oeste.png", "Regiones Oriente + Oeste", "COL, JAL, MICH, NAY, HGO, PUE, TLAX, VER")
+  filter(str_detect(Location,
+                    paste0("Colima|Jalisco|Michoacan|Michoacán|Nayarit|",
+                           "Hidalgo|Puebla|Tlaxcala|Veracruz"))) %>%
+  plot_state("images/Variantes_Oriente_y_Oeste.png", "Regiones Oriente + Oeste",
+             "COL, JAL, MICH, NAY, HGO, PUE, TLAX, VER", variantes)
 
 sqplot <- plot_grid(
-          norte  + ggtitle("NORTE") + theme(legend.position = "none"), 
+          norte  + ggtitle("NORTE")  + theme(legend.position = "none"), 
           centro + ggtitle("CENTRO") + theme(legend.position = "none"), 
-          sur    + ggtitle("SUR") + theme(legend.position = "none"), 
-          oriente_oeste + ggtitle("ORIENTE Y OESTE") + theme(legend.position = "none"))
+          sur    + ggtitle("SUR")    + theme(legend.position = "none"), 
+          oriente_oeste + ggtitle("ORIENTE Y OESTE") + 
+            theme(legend.position = "none"))
 
 # extract the legend from one of the plots
 legend <- get_legend(
@@ -122,8 +197,7 @@ legend <- get_legend(
     theme(legend.position = "bottom")
 )
 
-# add the legend to the row we made earlier. Give it one-third of 
-# the width of one plot (via rel_widths).
+# add the legend 
 plot_grid(sqplot, legend, ncol = 1, rel_heights = c(1, 0.1))
 ggsave("images/Regiones_variantes.png", width = 10, height = 8, dpi = 750)
 
@@ -134,7 +208,7 @@ if (!require(covidmx)){
   library(covidmx)
 }
 
-if (require(covidmx)){
+if (require(covidmx) & flag){
   covid        <- descarga_datos_abiertos()
   ambulatorios <- covid %>% casos(group_by_entidad = F,
                                   tipo_caso    = "Sospechosos y Confirmados COVID")
@@ -196,4 +270,3 @@ if (require(covidmx)){
 
 #Delete downloaded file
 file.remove(fname)
-
