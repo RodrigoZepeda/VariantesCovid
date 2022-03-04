@@ -26,6 +26,26 @@ Para Linux puedes usar `crontab` para automatizar la descarga de la base de dato
 
 donde tu número de display se obtiene haciendo
 
+```{bash}
+env | grep 'DISPLAY'
+```
+
+2. Guarda tus credenciales en `gisaid_user_password.txt` donde el primer renglón es tu usuario y el segundo tu password:
+
+```{bash}
+usuario
+password
+```
+
+3. Crea tu base en `mariadb` que se llame `COVID` y dale el acceso a tu usuario. Para poner tu usuario exporta las variables en tu `.bash_profile` 
+
+```{bash}
+export MariaDB_user="usuario"
+export MariaDB_password="password"
+```
+
+4. Cambia los paths en el `orchestrate.sh` y vulélvelo ejecutable con `chmod +x orchestrate.sh`.
+
 ## Referencias de GISAID
 
 Khare, S., et al (2021) _GISAID’s Role in Pandemic Response._ China CDC Weekly, 3(49): 1049-1051. [doi:10.46234/ccdcw2021.255](doi:10.46234/ccdcw2021.255)  PMCID: 8668406
