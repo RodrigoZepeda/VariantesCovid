@@ -1,6 +1,6 @@
 # VariantesCOVID
 
-> **Nota** A partir del 3 de marzo estas gráficas se actualizan diario automáticamente. 
+> **Nota** A partir del 5 de marzo estas gráficas se actualizan diario automáticamente. 
 
 ![Variantes por región en México dividido en Norte, Sur, Centro y la combinación de Oriente + Oeste](images/Regiones_variantes.png)
 
