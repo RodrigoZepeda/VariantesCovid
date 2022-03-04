@@ -59,7 +59,7 @@ browser.find_element_by_id("epassword").send_keys(password + Keys.RETURN)
 time.sleep(sleep_time)
 
 #Click download
-browser.execute_script("sys.getC('c_r82jx8_tt').onclick('ce_r82jx8_a5', '', 'page_corona2020.PartnerDownloadsPage', false)")
+browser.find_element_by_xpath("/html/body/form/div[5]/div/div[2]/div/div[1]/div/div/div[5]").click()
 time.sleep(sleep_time)
 
 #Open new frame
@@ -67,16 +67,16 @@ frame = browser.find_element_by_tag_name('iframe')
 browser.switch_to.frame(frame)
 time.sleep(sleep_time)
 
-browser.execute_script("sys.call('c_r82jx8_10u','DownloadFile',new Object({'id':'gisaid:variant_surveillance_tsv.tar.xz'}));")
+browser.find_element_by_xpath("/html/body/form/div[5]/div/div[1]/div/div/div[16]/div/div").click()
 time.sleep(sleep_time)
 
 confirmation_frame = browser.find_element_by_tag_name('iframe')
 browser.switch_to.frame(confirmation_frame)
 time.sleep(sleep_time)
 
-browser.find_element_by_xpath('//*[@id="ce_r82jx8_pv"]/div[1]/div/input').click()
+browser.find_element_by_xpath('/html/body/form/div[5]/div/div[2]/div[1]/div/table/tbody/tr/td[2]/table/tbody/tr/td/div/div[1]/div/input').click()
 time.sleep(sleep_time)
-browser.find_element_by_xpath('//*[@id="ce_r82jx8_py"]/div/button/img').click()
+browser.find_element_by_xpath('/html/body/form/div[5]/div/div[2]/div[2]/div/div[2]/div/button').click()
 
 fileends = "crdownload"
 
