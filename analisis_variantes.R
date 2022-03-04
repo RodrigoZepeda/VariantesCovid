@@ -57,7 +57,7 @@ mi_query <- glue("LOAD DATA LOCAL INFILE \'{tsv_name}\' ",
                  "LINES TERMINATED BY '\\n' ", 
                  "IGNORE 1 LINES;")
 dbSendStatement(conn = con, statement = mi_query)
-dbSendStatement(con, "SHOW COLUMNS FROM variant_surveillance")
+
 variant_surveillance <- tbl(con, "variant_surveillance")
 
 #Tets if works
@@ -83,9 +83,9 @@ mx_surveillance <- variant_surveillance %>%
   mutate(Variant = word(Variant, 1,2, sep = " ")) 
 
 variantes <- unique(mx_surveillance$Variant)
-
+fechas    <- unique(mx_surveillance$`Collection date`)
 #Función para procesamiento
-plot_state <- function(mx_surveillance, plot_name, title_name, subtitle_name = "", variantes){
+plot_state <- function(mx_surveillance, plot_name, title_name, subtitle_name = "", variantes = variantes, fechas = fechas){
   
   vcount <- mx_surveillance %>%
     group_by(Variant, Semana, Año) %>%
@@ -117,7 +117,9 @@ plot_state <- function(mx_surveillance, plot_name, title_name, subtitle_name = "
     ) +
     scale_x_date(date_labels = "%B %y", date_breaks = "3 months",
                  date_minor_breaks = "1 month") +
-    scale_fill_manual("Variante", values = colores)
+    scale_fill_manual("Variante", values = colores) +
+    theme(panel.background = element_rect(fill = "white"), plot.background = element_rect(fill = "white", color = "white"),
+          axis.text.x = element_text(angle = 45, size = 10, hjust = 1))
   ggsave(plot_name, variantplot, width = 10, height = 4, dpi = 750)
   
   return(variantplot)
@@ -129,7 +131,7 @@ plot_state <- function(mx_surveillance, plot_name, title_name, subtitle_name = "
 
 #NACIONAL
 #------------------------------------------------------------------------
-plot_state(mx_surveillance, "images/Variantes_Nacional.png", "México", variantes =  variantes)
+plot_state(mx_surveillance, "images/Variantes_Nacional.png", "México", variantes =  variantes, fechas)
 
 #CIUDAD DE MÉXICO 
 #------------------------------------------------------------------------
