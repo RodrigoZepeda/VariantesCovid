@@ -2,7 +2,7 @@
 
 > **Nota** A partir del 5 de marzo estas gráficas se actualizan diario automáticamente. 
 
-![Variantes por región en México dividido en Norte, Sur, Centro y la combinación de Oriente + Oeste](images/Regiones_variantes.png)
+![Variantes por región en México dividido en Norte, Sur, Centro y la combinación de Oriente + Oeste](images/Variantes_Nacional.png)
 
 Gráficas que ilustran la proporción de casos de COVID-19 por variante en México. 
 
