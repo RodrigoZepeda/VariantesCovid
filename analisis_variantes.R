@@ -105,7 +105,7 @@ plot_state <- function(mx_surveillance, plot_name, title_name, subtitle_name = "
   
   Sys.setlocale(locale="es_ES.UTF-8")
   colores        <- met.brewer("Hiroshige", length(variantes), "continuous")
-  names(colores) <- variantes
+  names(colores) <- sort(variantes)
   variantplot <- ggplot(vcount) +
     geom_stream(aes(x = fecha_proxy, y = n, fill = Variant), type = "proportional", alpha = 1) +
     theme_minimal() +
