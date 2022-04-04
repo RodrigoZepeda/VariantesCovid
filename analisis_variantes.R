@@ -74,7 +74,7 @@ mx_surveillance <- variant_surveillance %>%
   filter(Variant != "") %>%
   collapse() %>%
   as.data.frame %>%
-  mutate(`Collection date` = as.Date(`Collection date`)) %>%
+  mutate(`Collection date` = ymd(`Collection date`)) %>%
   filter(!is.na(`Collection date`)) %>%
   filter(`Collection date` <= today()) %>%
   mutate(Semana = epiweek(`Collection date`)) %>%
@@ -94,11 +94,26 @@ plot_state <- function(mx_surveillance, plot_name, title_name, subtitle_name = "
     tally() %>%
     ungroup() %>%
     mutate(fecha_proxy = ymd(paste0(Año,"/01/03")) + weeks(Semana)) %>%
-    filter(fecha_proxy > ymd("2021-03-20"))
+    filter(fecha_proxy > ymd("2021-03-20")) %>%
+    mutate(fecha_proxy = if_else(year(fecha_proxy) > Año, fecha_proxy - years(1), 
+                                 fecha_proxy))
   
   vprop <- vcount %>%
     group_by(Semana, Año, fecha_proxy) %>%
     summarise(Total = sum(n), .groups = "keep") 
+  
+  maxcount        <- -Inf
+  semana_reciente <- today() + 1
+  while (maxcount < 20){
+    message(paste0("Fecha: ", semana_reciente))
+    vcount <- vcount %>%
+      filter(fecha_proxy < !!semana_reciente)
+    
+    semana_reciente <- max(vcount$fecha_proxy)
+    maxcount        <- vcount %>%
+      filter(fecha_proxy == !!semana_reciente) %>%
+      summarise(n = sum(n)) %>% unlist() %>% as.numeric()
+  }
   
   vcount <- vcount %>% 
     left_join(vprop, by = c("fecha_proxy","Semana","Año")) %>%
