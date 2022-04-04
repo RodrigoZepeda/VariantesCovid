@@ -82,6 +82,8 @@ mx_surveillance <- variant_surveillance %>%
   mutate(Variant = if_else(str_detect(`Pango lineage`,"BA.2") & str_detect(Variant, "Omicron"), "Omicron BA.2", Variant)) %>%
   mutate(Variant = word(Variant, 1,2, sep = " ")) 
 
+mx_surveillance %>% write_excel_csv("variantes_mx.csv")
+
 variantes <- unique(mx_surveillance$Variant)
 fechas    <- unique(mx_surveillance$`Collection date`)
 #Función para procesamiento
