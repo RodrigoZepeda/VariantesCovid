@@ -86,6 +86,7 @@ mx_surveillance %>% write_excel_csv("variantes_mx.csv")
 
 variantes <- unique(mx_surveillance$Variant)
 fechas    <- unique(mx_surveillance$`Collection date`)
+
 #Función para procesamiento
 plot_state <- function(mx_surveillance, plot_name, title_name, subtitle_name = "", variantes = variantes, fechas = fechas){
   
@@ -130,13 +131,14 @@ plot_state <- function(mx_surveillance, plot_name, title_name, subtitle_name = "
       x = "",
       y = "Proporción",
       title = paste0("Variantes del SARS-CoV-2 por semana epidemiológica en ", title_name, " [GISAID EpiFlu™ Database]"),
-      subtitle = subtitle_name
+      subtitle = subtitle_name,
+      caption  = paste0("Última recolección de datos con n ≥ 20: ", max(vcount$fecha_proxy))
     ) +
     scale_x_date(date_labels = "%B %y", date_breaks = "3 months",
                  date_minor_breaks = "1 month") +
     scale_fill_manual("Variante", values = colores) +
     theme(panel.background = element_rect(fill = "white"), plot.background = element_rect(fill = "white", color = "white"),
-          axis.text.x = element_text(angle = 45, size = 10, hjust = 1))
+          axis.text.x = element_text(angle = 45, size = 10, hjust = 1)) 
   ggsave(plot_name, variantplot, width = 10, height = 4, dpi = 750)
   
   return(variantplot)
