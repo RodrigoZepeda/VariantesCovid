@@ -139,7 +139,7 @@ plot_state <- function(mx_surveillance, plot_name, title_name, subtitle_name = "
     scale_fill_manual("Variante", values = colores) +
     theme(panel.background = element_rect(fill = "white"), plot.background = element_rect(fill = "white", color = "white"),
           axis.text.x = element_text(angle = 45, size = 10, hjust = 1)) 
-  ggsave(plot_name, variantplot, width = 10, height = 4, dpi = 750)
+  ggsave(plot_name, variantplot, width = 10, height = 4, dpi = 750, bg = "white")
   
   return(variantplot)
 }
@@ -220,7 +220,8 @@ legend <- get_legend(
 
 # add the legend 
 plot_grid(sqplot, legend, ncol = 1, rel_heights = c(1, 0.1))
-ggsave("images/Regiones_variantes.png", width = 10, height = 8, dpi = 750)
+ggsave("images/Regiones_variantes.png", width = 10, height = 8, dpi = 750,
+       bg = "white")
 
 
 #GRÁFICA DE BARRAS
