@@ -34,20 +34,25 @@ con    <- dbConnect(RMariaDB::MariaDB(),
 header <- read_delim(tsv_name, delim = "\t", n_max = 100, escape_double = FALSE,
                      trim_ws = TRUE)
 
-dbSendStatement(conn = con, statement = "SET sql_mode = 'NO_ENGINE_SUBSTITUTION,NO_AUTO_CREATE_USER';")
+resdbi <- dbSendStatement(conn = con,
+                statement = "SET sql_mode = 'NO_ENGINE_SUBSTITUTION,NO_AUTO_CREATE_USER';")
+dbClearResult(resdbi)
 dbWriteTable(conn = con, name = "variant_surveillance", value = header,
                     overwrite = T)
-dbSendStatement(conn = con, statement = "DELETE FROM variant_surveillance;")
+resdbi <- dbSendStatement(conn = con, statement = "DELETE FROM variant_surveillance;")
+dbClearResult(resdbi)
 
 for (colname in c("Clade","`Pango lineage`","`AA Substitutions`","Location","Type","`Accession ID`","Variant","Host")){
   longtext <- glue("ALTER TABLE variant_surveillance MODIFY {colname} TEXT;")
-  dbSendStatement(conn = con, statement = longtext)
+  resdbi <- dbSendStatement(conn = con, statement = longtext)
+  dbClearResult(resdbi)
 }
 
 logicols <- sapply(header, typeof)
 for (colname in names(logicols[which(logicols == "logical")])){
   longtext <- glue("ALTER TABLE variant_surveillance MODIFY \`{colname}\` TEXT;")
-  dbSendStatement(conn = con, statement = longtext)
+  resdbi <- dbSendStatement(conn = con, statement = longtext)
+  dbClearResult(resdbi)
 }
 
 mi_query <- glue("LOAD DATA LOCAL INFILE \'{tsv_name}\' ",
@@ -56,7 +61,8 @@ mi_query <- glue("LOAD DATA LOCAL INFILE \'{tsv_name}\' ",
                  "COLUMNS TERMINATED BY '\\t' ",
                  "LINES TERMINATED BY '\\n' ",
                  "IGNORE 1 LINES;")
-dbSendStatement(conn = con, statement = mi_query)
+resdbi <- dbSendStatement(conn = con, statement = mi_query)
+dbClearResult(resdbi)
 
 variant_surveillance <- tbl(con, "variant_surveillance")
 
@@ -65,7 +71,7 @@ variant_surveillance <- tbl(con, "variant_surveillance")
 #dbFetch(res)
 #dbClearResult(res)
 
-#Filtro para México
+#Filtro para Mexico
 #------------------------------------------------
 mx_surveillance <- variant_surveillance %>%
   filter(str_detect(Location,"Mexico")) %>%
