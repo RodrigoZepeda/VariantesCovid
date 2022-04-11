@@ -132,7 +132,7 @@ plot_state <- function(mx_surveillance, plot_name, title_name, subtitle_name = "
       y = "Proporción",
       title = paste0("Variantes del SARS-CoV-2 por semana epidemiológica en ", title_name, " [GISAID EpiFlu™ Database]"),
       subtitle = subtitle_name,
-      caption  = paste0("Última recolección de datos con n ≥ 20: ", max(vcount$fecha_proxy))
+      caption  = paste0("Última recolección de datos con n ≥ 20: ", max(vcount$fecha_proxy),"\nGráfica elaborada el ", today())
     ) +
     scale_x_date(date_labels = "%B %y", date_breaks = "3 months",
                  date_minor_breaks = "1 month") +
