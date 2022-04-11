@@ -73,12 +73,13 @@ frame = browser.find_element_by_tag_name('iframe')
 browser.switch_to.frame(frame)
 time.sleep(sleep_time)
 
-browser.find_element_by_xpath("/html/body/form/div[5]/div/div[1]/div/div/div[16]/div/div").click()
+text_variant = browser.find_element_by_xpath("//*[contains(text(), 'Variant surveillance')]").click()
 time.sleep(sleep_time)
 
 confirmation_frame = browser.find_element_by_tag_name('iframe')
 browser.switch_to.frame(confirmation_frame)
 time.sleep(sleep_time)
+
 
 browser.find_element_by_xpath('/html/body/form/div[5]/div/div[2]/div[1]/div/table/tbody/tr/td[2]/table/tbody/tr/td/div/div[1]/div/input').click()
 time.sleep(sleep_time)
