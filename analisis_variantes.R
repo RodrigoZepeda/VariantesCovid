@@ -297,5 +297,5 @@ if (require(covidmx) & flag){
 }
 
 #Delete downloaded file
-file.remove(fname)
-file.remove(tsv_name)
+#file.remove(fname)
+#file.remove(tsv_name)
