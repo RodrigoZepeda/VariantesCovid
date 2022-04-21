@@ -15,13 +15,19 @@ library(odbc)
 library(RMariaDB)
 library(glue)
 
-flag <- FALSE
+flag     <- FALSE
+nthreads <- parallel::detectCores() - 2
 
 #Lectura de la base
 #------------------------------------------------
-fname                <- list.files(pattern = "*.tar", full.names = T)
-tsv_name             <- untar(fname, list = TRUE)
-tsv_name             <- tsv_name[which(str_detect(tsv_name,".tsv"))]
+
+#Get latest tar file
+tarfiles <- list.files(pattern = "variant_surveillance_tsv.*.tar", full.names = T)
+df       <- file.info(tarfiles)
+fname    <- rownames(df)[which.max(df$mtime)]
+
+tsv_name <- untar(fname, list = TRUE)
+tsv_name <- tsv_name[which(str_detect(tsv_name,".tsv"))]
 untar(fname, as.character(tsv_name))
 
 #Creamos el MARIADB
@@ -32,8 +38,9 @@ con    <- dbConnect(RMariaDB::MariaDB(),
                     dbname = "COVID")
 
 header <- read_delim(tsv_name, delim = "\t", n_max = 100, escape_double = FALSE,
-                     trim_ws = TRUE)
+                     trim_ws = TRUE, show_col_types = FALSE)
 
+#https://derwiki.tumblr.com/post/24490758395/loading-half-a-billion-rows-into-mysql
 resdbi <- dbSendStatement(conn = con,
                 statement = "SET sql_mode = 'NO_ENGINE_SUBSTITUTION,NO_AUTO_CREATE_USER';")
 dbClearResult(resdbi)
@@ -55,18 +62,36 @@ for (colname in names(logicols[which(logicols == "logical")])){
   dbClearResult(resdbi)
 }
 
-mi_query <- glue("LOAD DATA LOCAL INFILE \'{tsv_name}\' ",
-                 "REPLACE INTO TABLE variant_surveillance ",
-                 "CHARACTER SET UTF8 ",
-                 "COLUMNS TERMINATED BY '\\t' ",
-                 "LINES TERMINATED BY '\\n' ",
-                 "IGNORE 1 LINES;")
-resdbi <- dbSendStatement(conn = con, statement = mi_query)
-dbClearResult(resdbi)
+tryCatch({
+  message(glue::glue("Intentando crear tabla en paralelo | Attempting to create table in parallel"))
+  system(glue::glue("mysqlimport --default-character-set=UTF8",
+                    " --fields-terminated-by='\\t'",
+                    " --ignore-lines=1",
+                    " --lines-terminated-by='\\n'",
+                    " --user={Sys.getenv('MariaDB_user')}",
+                    " --password={Sys.getenv('MariaDB_password')}",
+                    " --use-threads={nthreads}",
+                    " --local COVID variant_surveillance.tsv"))
+},
+error=function(e) {
+
+  #____Writing to table-----
+  message("MARIADB LOAD DATA LOCAL")
+
+  mi_query <- glue("LOAD DATA LOCAL INFILE \'{tsv_name}\' ",
+                   "REPLACE INTO TABLE variant_surveillance ",
+                   "CHARACTER SET UTF8 ",
+                   "COLUMNS TERMINATED BY '\\t' ",
+                   "LINES TERMINATED BY '\\n' ",
+                   "IGNORE 1 LINES;")
+  resdbi <- dbSendStatement(conn = con, statement = mi_query)
+  dbClearResult(resdbi)
+
+})
 
 variant_surveillance <- tbl(con, "variant_surveillance")
 
-#Tets if works
+#Tests if works
 #res <- dbSendQuery(conn = con, "SELECT * FROM variant_surveillance LIMIT 10")
 #dbFetch(res)
 #dbClearResult(res)
@@ -297,5 +322,5 @@ if (require(covidmx) & flag){
 }
 
 #Delete downloaded file
-#file.remove(fname)
+file.remove(tarfiles)
 file.remove(tsv_name)
