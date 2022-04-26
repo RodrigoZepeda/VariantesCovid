@@ -161,7 +161,7 @@ plot_state <- function(mx_surveillance, plot_name, title_name, subtitle_name = "
     labs(
       x = "",
       y = "Proporción",
-      title = paste0("Variantes del SARS-CoV-2 por semana epidemiológica en ", title_name, " [GISAID EpiFlu™ Database]"),
+      title = paste0("Variantes del SARS-CoV-2 por semana epidemiológica en ", title_name, "\n[GISAID EpiFlu™ Database]"),
       subtitle = subtitle_name,
       caption  = paste0("Última recolección de datos con n ≥ 20: ", max(vcount$fecha_proxy),"\nGráfica elaborada el ", today())
     ) +
@@ -181,7 +181,7 @@ plot_state <- function(mx_surveillance, plot_name, title_name, subtitle_name = "
 
 #NACIONAL
 #------------------------------------------------------------------------
-plot_state(mx_surveillance, "images/Variantes_Nacional.png", "México", variantes =  variantes, fechas)
+plot_state(mx_surveillance, "images/Variantes_Nacional.png", "México","Nacional", variantes =  variantes, fechas)
 
 #CIUDAD DE MÉXICO
 #------------------------------------------------------------------------
