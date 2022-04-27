@@ -7,6 +7,7 @@ from selenium import webdriver
 from selenium.webdriver.support.select import Select
 import time
 from selenium.webdriver.common.keys import Keys
+from sys import platform
 
 print("Running python")
 
@@ -18,9 +19,12 @@ def latest_download_file():
     return newest
 
 
-#Folder de descarga
+#Folder de descarga y chromedriver segun linux u osx
 folder_of_download     = os.getcwd()
-direccion_chromedriver = '/usr/bin/chromedriver'
+if platform == "linux" or platform == "linux2":
+    direccion_chromedriver = '/usr/bin/chromedriver'
+else:
+    direccion_chromedriver = '/usr/local/bin/chromedriver'
 
 #Tiempo de espera
 sleep_time = 15

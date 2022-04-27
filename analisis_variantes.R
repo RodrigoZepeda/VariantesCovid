@@ -89,6 +89,8 @@ error=function(e) {
 
 })
 
+message(glue::glue("variant_surveillance table created inside COVID database"))
+
 variant_surveillance <- tbl(con, "variant_surveillance")
 
 #Tests if works
@@ -114,6 +116,7 @@ mx_surveillance <- variant_surveillance %>%
   mutate(Variant = word(Variant, 1,2, sep = " "))
 
 mx_surveillance %>% write_excel_csv("variantes_mx.csv")
+message(glue::glue("variantes_mx.csv created in {getwd()}"))
 
 variantes <- unique(mx_surveillance$Variant)
 fechas    <- unique(mx_surveillance$`Collection date`)
@@ -235,6 +238,7 @@ oriente_oeste <- mx_surveillance %>%
   plot_state("images/Variantes_Oriente_y_Oeste.png", "Regiones Oriente + Oeste",
              "COL, JAL, MICH, NAY, HGO, PUE, TLAX, VER", variantes)
 
+
 sqplot <- plot_grid(
           norte  + ggtitle("NORTE")  + theme(legend.position = "none"),
           centro + ggtitle("CENTRO") + theme(legend.position = "none"),
@@ -322,5 +326,6 @@ if (require(covidmx) & flag){
 }
 
 #Delete downloaded file
+message("Finished")
 file.remove(tarfiles)
 file.remove(tsv_name)
