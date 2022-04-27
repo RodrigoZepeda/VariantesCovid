@@ -181,7 +181,7 @@ plot_state <- function(mx_surveillance, plot_name, title_name, subtitle_name = "
 
 #NACIONAL
 #------------------------------------------------------------------------
-plot_state(mx_surveillance, "images/Variantes_Nacional.png", "México","Nacional", variantes =  variantes, fechas)
+plot_state(mx_surveillance, "images/Variantes_Nacional.png", "México", "Nacional", variantes =  variantes, fechas)
 
 #CIUDAD DE MÉXICO
 #------------------------------------------------------------------------
