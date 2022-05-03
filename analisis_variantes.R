@@ -3,7 +3,7 @@
 #https://github.com/guillermodeandajauregui/covid19mx-sql/blob/main/data_loader.R
 rm(list = ls())
 
-library(covidmx)
+#library(covidmx)
 library(tidyverse)
 library(lubridate)
 library(ggstream)
