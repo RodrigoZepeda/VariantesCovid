@@ -8,6 +8,7 @@ library(tidyverse)
 library(lubridate)
 library(ggstream)
 library(MetBrewer)
+library(ggtext)
 library(latexpdf)
 library(cowplot)
 library(DBI)
@@ -109,11 +110,17 @@ mx_surveillance <- variant_surveillance %>%
   filter(!is.na(`Collection date`)) %>%
   filter(`Collection date` <= today()) %>%
   mutate(Semana = epiweek(`Collection date`)) %>%
-  mutate(Año = year(`Collection date`)) %>%
-  mutate(Variant = if_else(str_detect(`Pango lineage`,"BA.2") & str_detect(Variant, "Omicron"), "Omicron BA.2", Variant)) %>%
-  mutate(Variant = word(Variant, 1,2, sep = " "))
+  mutate(Año = year(`Collection date`)) 
 
-mx_surveillance %>% write_excel_csv("variantes_mx.csv")
+mx_surveillance %>% 
+  write_excel_csv("variantes_mx.csv")
+
+mx_surveillance <- mx_surveillance %>%
+      mutate(Variant = if_else(str_detect(`Pango lineage`,"BA.2") & 
+                                 str_detect(Variant, "Omicron"), "Omicron BA.2", Variant)) %>%
+      mutate(Variant = word(Variant, 1,2, sep = " "))
+
+dbDisconnect(con)
 
 variantes <- unique(mx_surveillance$Variant)
 fechas    <- unique(mx_surveillance$`Collection date`)
