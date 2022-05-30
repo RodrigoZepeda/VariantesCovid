@@ -21,10 +21,7 @@ def latest_download_file():
 
 #Folder de descarga y chromedriver segun linux u osx
 folder_of_download     = os.getcwd()
-if platform == "linux" or platform == "linux2":
-    direccion_chromedriver = '/usr/bin/chromedriver'
-else:
-    direccion_chromedriver = '/usr/local/bin/chromedriver'
+direccion_chromedriver = '/usr/local/bin/chromedriver'
 
 #Tiempo de espera
 sleep_time = 15
