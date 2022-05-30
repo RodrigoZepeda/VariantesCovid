@@ -115,9 +115,12 @@ mx_surveillance <- variant_surveillance %>%
 mx_surveillance %>% 
   write_excel_csv("variantes_mx.csv")
 
-mx_surveillance <- mx_surveillance %>%
-      mutate(Variant = if_else(str_detect(`Pango lineage`,"BA.2") & 
-                                 str_detect(Variant, "Omicron"), "Omicron BA.2", Variant)) %>%
+mx_surveillance <-  read_csv("variantes_mx.csv") %>%
+      mutate(Variant = if_else(str_detect(Variant, "Omicron"), 
+                               paste0("Omicron ", str_sub(`Pango lineage`,1,4)), Variant)) %>%
+      mutate(Variant = if_else(str_detect(Variant, "Omicron") &
+                                 str_detect(`Pango lineage`,"Unassigned"),"Omicron (sin_asignar)", 
+                               Variant)) %>%
       mutate(Variant = word(Variant, 1,2, sep = " "))
 
 dbDisconnect(con)
@@ -174,10 +177,11 @@ plot_state <- function(mx_surveillance, plot_name, title_name, subtitle_name = "
     ) +
     scale_x_date(date_labels = "%B %y", date_breaks = "3 months",
                  date_minor_breaks = "1 month") +
-    scale_fill_manual("Variante", values = colores) +
+    scale_fill_manual("Variante/Subvariante", values = colores) +
     theme(panel.background = element_rect(fill = "white"), plot.background = element_rect(fill = "white", color = "white"),
-          axis.text.x = element_text(angle = 45, size = 10, hjust = 1))
-  ggsave(plot_name, variantplot, width = 10, height = 4, dpi = 750, bg = "white")
+          axis.text.x = element_text(angle = 45, size = 10, hjust = 1),
+          legend.position = "bottom") 
+  ggsave(plot_name, variantplot, width = 10, height = 6, dpi = 750, bg = "white")
 
   return(variantplot)
 }
