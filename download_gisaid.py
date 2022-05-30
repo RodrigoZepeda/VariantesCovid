@@ -70,6 +70,8 @@ time.sleep(sleep_time)
 
 #Click download
 browser.back() #update to remove publicity
+time.sleep(sleep_time)
+
 browser.find_element_by_xpath("/html/body/form/div[5]/div/div[2]/div/div[1]/div/div/div[5]").click()
 time.sleep(sleep_time)
 
