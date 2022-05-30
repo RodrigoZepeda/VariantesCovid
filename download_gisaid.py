@@ -69,6 +69,7 @@ browser.find_element_by_id("epassword").send_keys(password + Keys.RETURN)
 time.sleep(sleep_time)
 
 #Click download
+browser.back() #update to remove publicity
 browser.find_element_by_xpath("/html/body/form/div[5]/div/div[2]/div/div[1]/div/div/div[5]").click()
 time.sleep(sleep_time)
 
