@@ -287,7 +287,7 @@ sqplot <- plot_grid(
 # extract the legend from one of the plots
 legend <- get_legend(
   norte +
-    guides(fill = guide_legend(nrow = 3)) +
+    guides(fill = guide_legend(nrow = 2)) +
     theme(legend.position = "bottom")
 )
 
@@ -295,7 +295,7 @@ legend <- get_legend(
 plot_grid(nacional + theme(legend.position = "none",
                            plot.title = element_markdown(size = 30)) + ylab("") +
             labs(
-              title = "<br>Variantes de <span style='color:#006400'>SARS-CoV-2</span> en México", 
+              title = "Variantes de <span style='color:#006400'>SARS-CoV-2</span> en México", 
               caption = "",
               subtitle = glue("**Fuente:** GISAID EpiFlu™ Database |", 
                               " **Github**: RodrigoZepeda/VariantesCovid | ",
