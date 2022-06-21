@@ -129,7 +129,8 @@ variantes <- unique(mx_surveillance$Variant)
 fechas    <- unique(mx_surveillance$`Collection date`)
 
 #Función para procesamiento
-plot_state <- function(mx_surveillance, plot_name, title_name, subtitle_name = "", variantes = variantes, fechas = fechas){
+plot_state <- function(mx_surveillance, plot_name, title_name, subtitle_name = "", 
+                       variantes = variantes, fechas = fechas){
 
   vcount <- mx_surveillance %>%
     group_by(Variant, Semana, Año) %>%
@@ -162,25 +163,34 @@ plot_state <- function(mx_surveillance, plot_name, title_name, subtitle_name = "
     mutate(Prop = n/Total) %>%
     filter(fecha_proxy > ymd("2021-03-20") & year(fecha_proxy) <= year(today()))
 
-  Sys.setlocale(locale="es_ES.UTF-8")
+  #Sys.setlocale(locale="es_ES.UTF-8")
   colores        <- met.brewer("Hiroshige", length(variantes), "continuous")
   names(colores) <- sort(variantes)
+  Sys.setlocale("LC_ALL",'es_MX.UTF-8')
   variantplot <- ggplot(vcount) +
     geom_stream(aes(x = fecha_proxy, y = n, fill = Variant), type = "proportional", alpha = 1) +
-    theme_minimal() +
     labs(
       x = "",
-      y = "Proporción",
-      title = paste0("Variantes del SARS-CoV-2 por semana epidemiológica en ", title_name, "\n[GISAID EpiFlu™ Database]"),
+      y = "Porcentaje de casos registrados",
+      title = title_name,
       subtitle = subtitle_name,
-      caption  = paste0("Última recolección de datos con n ≥ 20: ", max(vcount$fecha_proxy),"\nGráfica elaborada el ", today())
+      caption  = glue("**Fuente:** GISAID EpiFlu™ Database. ", 
+                      "| **Github**: RodrigoZepeda/VariantesCovid<br>",
+                        "Gráfica elaborada el {today()} usando datos hasta el {max(vcount$fecha_proxy)}.")
     ) +
-    scale_x_date(date_labels = "%B %y", date_breaks = "3 months",
-                 date_minor_breaks = "1 month") +
+    scale_x_date(date_labels = "%B %y", date_breaks = "1 month", expand = c(0,0)) +
+    scale_y_continuous(labels = scales::percent, expand = c(0,0)) + 
     scale_fill_manual("Variante/Subvariante", values = colores) +
-    theme(panel.background = element_rect(fill = "white"), plot.background = element_rect(fill = "white", color = "white"),
+    theme(panel.background = element_rect(fill = "white"), 
+          plot.background = element_rect(fill = "white", color = "white"),
           axis.text.x = element_text(angle = 45, size = 10, hjust = 1),
-          legend.position = "bottom") 
+          legend.position = "bottom",
+          panel.border = element_blank(),
+          plot.title = element_markdown(size = 20, hjust = 0.5),
+          plot.subtitle = element_markdown(size = 12, hjust = 0.5),
+          plot.caption = element_markdown(),
+          axis.line = element_blank(),
+          axis.line.y.left = element_line()) 
   ggsave(plot_name, variantplot, width = 10, height = 6, dpi = 750, bg = "white")
 
   return(variantplot)
@@ -192,7 +202,9 @@ plot_state <- function(mx_surveillance, plot_name, title_name, subtitle_name = "
 
 #NACIONAL
 #------------------------------------------------------------------------
-plot_state(mx_surveillance, "images/Variantes_Nacional.png", "México", "Nacional", variantes =  variantes, fechas)
+nacional <- plot_state(mx_surveillance, "images/Variantes_Nacional.png", 
+           "Variantes de <span style='color:#006400'>SARS-CoV-2</span> en México", 
+           "_Proporción de variantes a nivel nacional_", variantes =  variantes, fechas)
 
 #CIUDAD DE MÉXICO
 #------------------------------------------------------------------------
@@ -200,7 +212,9 @@ mx_surveillance %>%
   filter(str_detect(Location,
                     paste0("Mexico City|CDMX|CMX|Distrito Federal",
                            "|Ciudad de Mexico|Mexico city"))) %>%
-  plot_state("images/Variantes_CDMX.png", "CDMX", variantes = variantes)
+  plot_state("images/Variantes_CDMX.png", 
+             "Variantes de <span style='color:#006400'>SARS-CoV-2</span> en Región CDMX",
+             "_Proporción de variantes en Ciudad de México_", variantes = variantes)
 
 #NORTE
 #------------------------------------------------------------------------
@@ -211,8 +225,9 @@ norte <- mx_surveillance %>%
                            "Nuevo León|Tamaulipas|Mexicali|Ensenada|Tijuana|",
                            "Hermosillo|Monterrey|Guasave|Ahome|Los Mochis|",
                            "Saltillo|Torreon|Ciudad Juarez|"))) %>%
-  plot_state("images/Variantes_NORTE.png", "Región Norte",
-             "BC, BCS, CHIH, COAH, SIN, SON, DGO, NL, TAM", variantes)
+  plot_state("images/Variantes_NORTE.png", 
+             "Variantes de <span style='color:#006400'>SARS-CoV-2</span> en Región Norte",
+             "_Proporción de variantes en BC, BCS, CHIH, COAH, SIN, SON, DGO, NL, TAM_", variantes)
 
 #CENTRO
 #------------------------------------------------------------------------
@@ -225,8 +240,9 @@ centro <- mx_surveillance %>%
                            "Edomex|EDOMEX|Estado de mexico|Estado de Mexico|",
                            "State of Mexico|Mexico / Mexico|State of mexico|",
                            "Estado de méxico|Morelos"))) %>%
-  plot_state("images/Variantes_CENTRO.png", "Región Centro",
-             "AGS, GRO, QRO, ZAC, SLP, CDMX, EDOMEX, MOR", variantes)
+  plot_state("images/Variantes_CENTRO.png", 
+             "Variantes de <span style='color:#006400'>SARS-CoV-2</span> en Región Centro",
+             "_Proporción de variantes en AGS, GRO, QRO, ZAC, SLP, CDMX, EDOMEX, MOR_", variantes)
 
 #SUR
 #------------------------------------------------------------------------
@@ -234,8 +250,9 @@ sur <- mx_surveillance %>%
   filter(str_detect(Location,
                     paste0("Chiapas|Guerrero|Guerero|Oaxaca|Mérida|Campeche|",
                            "Quintana Roo|Tabasco|Yucatán|Yucatan|Cancun"))) %>%
-  plot_state("images/Variantes_SUR.png", "Región Sur",
-             "CHIS, GUE, OAX, QROO, CAM, TAB, YUC", variantes)
+  plot_state("images/Variantes_SUR.png", 
+             "Variantes de <span style='color:#006400'>SARS-CoV-2</span> en Región Sur",
+             "_Proporción de variantes en  CHIS, GUE, OAX, QROO, CAM, TAB, YUC_", variantes)
 
 #ORTIENTE + OESTE
 #------------------------------------------------------------------------
@@ -243,15 +260,29 @@ oriente_oeste <- mx_surveillance %>%
   filter(str_detect(Location,
                     paste0("Colima|Jalisco|Michoacan|Michoacán|Nayarit|",
                            "Hidalgo|Puebla|Tlaxcala|Veracruz"))) %>%
-  plot_state("images/Variantes_Oriente_y_Oeste.png", "Regiones Oriente + Oeste",
-             "COL, JAL, MICH, NAY, HGO, PUE, TLAX, VER", variantes)
+  plot_state("images/Variantes_Oriente_y_Oeste.png", 
+             "Variantes de <span style='color:#006400'>SARS-CoV-2</span> en Regiones Oriente + Oeste",
+             "_Proporción de variantes en COL, JAL, MICH, NAY, HGO, PUE, TLAX, VER_", variantes)
 
 sqplot <- plot_grid(
-          norte  + ggtitle("NORTE")  + theme(legend.position = "none"),
-          centro + ggtitle("CENTRO") + theme(legend.position = "none"),
-          sur    + ggtitle("SUR")    + theme(legend.position = "none"),
+          norte  + ggtitle("NORTE")  + theme(legend.position = "none") + 
+            labs(caption = "", y = "",
+                 subtitle = "_BC, BCS, CHIH, COAH, SIN, SON, DGO, NL, TAM_") +
+            theme(axis.text.x = element_text(color = "white"),
+                  axis.ticks.x  = element_line(color = "white")),
+          centro + ggtitle("CENTRO") + theme(legend.position = "none") + 
+            labs(caption = "", y = "",
+                 subtitle = "_AGS, GRO, QRO, ZAC, SLP, CDMX, EDOMEX, MOR_") +
+            theme(axis.text.x = element_text(color = "white"),
+                  axis.ticks.x  =element_line(color = "white")),
+          sur    + ggtitle("SUR")    + theme(legend.position = "none") + 
+            labs(caption = "", y = "",
+                 subtitle = "_CHIS, GUE, OAX, QROO, CAM, TAB, YUC_"),
           oriente_oeste + ggtitle("ORIENTE Y OESTE") +
-            theme(legend.position = "none"))
+            theme(legend.position = "none") +
+            labs(caption = "", y = "",
+                 subtitle = "_COL, JAL, MICH, NAY, HGO, PUE, TLAX, VER_"),
+          rel_heights = c(1, 1))
 
 # extract the legend from one of the plots
 legend <- get_legend(
@@ -261,8 +292,16 @@ legend <- get_legend(
 )
 
 # add the legend
-plot_grid(sqplot, legend, ncol = 1, rel_heights = c(1, 0.1))
-ggsave("images/Regiones_variantes.png", width = 10, height = 8, dpi = 750,
+plot_grid(nacional + theme(legend.position = "none",
+                           plot.title = element_markdown(size = 30)) + ylab("") +
+            labs(
+              caption = "",
+              subtitle = glue("**Fuente:** GISAID EpiFlu™ Database |", 
+                              " **Github**: RodrigoZepeda/VariantesCovid | ",
+                   "Gráfica elaborada el {today()} usando datos hasta el {max(vcount$fecha_proxy)}.")
+            )
+            , sqplot, legend, ncol = 1, rel_heights = c(1, 1, 0.1))
+ggsave("images/Regiones_variantes.png", width = 12, height = 14, dpi = 750,
        bg = "white")
 
 
