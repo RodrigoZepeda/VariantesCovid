@@ -1,10 +1,8 @@
 # VariantesCOVID
 
-> **NOTA** La semana del 26 de abril el repositorio NO será actualizado diariamente por fallas en mi computadora. 
-
 > **Nota** A partir del 5 de marzo estas gráficas se actualizan diario automáticamente. 
 
-![Variantes por región en México dividido en Norte, Sur, Centro y la combinación de Oriente + Oeste](images/Variantes_Nacional.png)
+![Variantes por región en México dividido en Norte, Sur, Centro y la combinación de Oriente + Oeste](images/Regiones_variantes.png)
 
 Gráficas que ilustran la proporción de casos de COVID-19 por variante en México. 
 
@@ -13,8 +11,6 @@ Gráficas que ilustran la proporción de casos de COVID-19 por variante en Méxi
 Los datos necesitas obtenerlos de [GISAID](https://www.gisaid.org/) yendo a `Downloads > Variant Surveillance`. 
 
 Alternativamente puedes usar el scrapper `download_gisaid.py` con tu password y tu usuario. No es un producto oficial y úsalo bajo tu riesgo pues desconozco si va en contra de los términos y condiciones de GISAID.
-
-![Variantes de COVID Nacional](images/barplot.png)
 
 ## Automatización
 
