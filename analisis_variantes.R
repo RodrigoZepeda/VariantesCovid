@@ -302,7 +302,7 @@ plot_grid(nacional + theme(legend.position = "none",
                    "Gráfica elaborada el {today()}.")
             )
             , sqplot, legend, ncol = 1, rel_heights = c(1, 1, 0.1))
-ggsave("images/Regiones_variantes.png", width = 12, height = 14, dpi = 750,
+ggsave("images/Regiones_variantes.png", width = 12, height = 12, dpi = 750,
        bg = "white")
 
 
