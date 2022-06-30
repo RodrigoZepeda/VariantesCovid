@@ -163,6 +163,17 @@ plot_state <- function(mx_surveillance, plot_name, title_name, subtitle_name = "
     mutate(Prop = n/Total) %>%
     filter(fecha_proxy > ymd("2021-03-20") & year(fecha_proxy) <= year(today()))
 
+  #Distribución actual
+  dactual            <- vcount %>% 
+    filter(fecha_proxy == max(fecha_proxy)) %>%
+    arrange(desc(Prop))
+  variantes_actuales <- ""
+  for (i in 1:nrow(dactual)){
+    variantes_actuales <- paste0(variantes_actuales, 
+                                 glue("{dactual[i,'Variant']}: {scales::percent(dactual[i,'Prop'][[1]])}"),
+                                 "\n")
+  }
+    
   #Sys.setlocale(locale="es_ES.UTF-8")
   colores        <- met.brewer("Hiroshige", length(variantes), "continuous")
   names(colores) <- sort(variantes)
@@ -178,6 +189,11 @@ plot_state <- function(mx_surveillance, plot_name, title_name, subtitle_name = "
                       "| **Github**: RodrigoZepeda/VariantesCovid<br>",
                         "Gráfica elaborada el {today()} usando datos hasta el {max(vcount$fecha_proxy)}.")
     ) +
+    annotate("label", x = ymd("2021/04/01"), y = 0.95, hjust = 0, vjust = 1, alpha = 0.75,
+                  fill = "white", size = 2.75,
+             label = glue("Distribución actual:\n", 
+                          "--------------------\n",
+                          variantes_actuales)) +
     scale_x_date(date_labels = "%B %y", date_breaks = "1 month", expand = c(0,0)) +
     scale_y_continuous(labels = scales::percent, expand = c(0,0)) + 
     scale_fill_manual("Variante/Subvariante", values = colores) +
@@ -264,25 +280,34 @@ oriente_oeste <- mx_surveillance %>%
              "Variantes de <span style='color:#006400'>SARS-CoV-2</span> en Regiones Oriente + Oeste",
              "_Proporción de variantes en COL, JAL, MICH, NAY, HGO, PUE, TLAX, VER_", variantes)
 
+mx_surveillance <- mx_surveillance %>%
+  mutate(fecha_proxy = ymd(paste0(Año,"/01/03")) + weeks(Semana)) %>%
+  filter(fecha_proxy > ymd("2021-03-20")) %>%
+  filter(fecha_proxy <= today())
+
 sqplot <- plot_grid(
           norte  + ggtitle("NORTE")  + theme(legend.position = "none") + 
             labs(caption = "", y = "",
                  subtitle = "_BC, BCS, CHIH, COAH, SIN, SON, DGO, NL, TAM_") +
-            theme(axis.text.x = element_text(color = "white"),
-                  axis.ticks.x  = element_line(color = "white")),
+            theme(axis.text.x = element_text(color = "white", angle = 0),
+                  axis.ticks.x  = element_line(color = "white")) +
+            coord_cartesian(xlim = c(min(mx_surveillance$fecha_proxy), max(mx_surveillance$fecha_proxy))),
           centro + ggtitle("CENTRO") + theme(legend.position = "none") + 
             labs(caption = "", y = "",
                  subtitle = "_AGS, GRO, QRO, ZAC, SLP, CDMX, EDOMEX, MOR_") +
-            theme(axis.text.x = element_text(color = "white"),
-                  axis.ticks.x  =element_line(color = "white")),
+            theme(axis.text.x = element_text(color = "white", angle = 0),
+                  axis.ticks.x  =element_line(color = "white")) +
+            coord_cartesian(xlim = c(min(mx_surveillance$fecha_proxy), max(mx_surveillance$fecha_proxy))),
           sur    + ggtitle("SUR")    + theme(legend.position = "none") + 
             labs(caption = "", y = "",
-                 subtitle = "_CHIS, GUE, OAX, QROO, CAM, TAB, YUC_"),
+                 subtitle = "_CHIS, GUE, OAX, QROO, CAM, TAB, YUC_") +
+            coord_cartesian(xlim = c(min(mx_surveillance$fecha_proxy), max(mx_surveillance$fecha_proxy))),
           oriente_oeste + ggtitle("ORIENTE Y OESTE") +
             theme(legend.position = "none") +
             labs(caption = "", y = "",
-                 subtitle = "_COL, JAL, MICH, NAY, HGO, PUE, TLAX, VER_"),
-          rel_heights = c(1, 1))
+                 subtitle = "_COL, JAL, MICH, NAY, HGO, PUE, TLAX, VER_") +
+            coord_cartesian(xlim = c(min(mx_surveillance$fecha_proxy), max(mx_surveillance$fecha_proxy))),
+          rel_heights = c(0.85, 1))
 
 # extract the legend from one of the plots
 legend <- get_legend(
@@ -302,12 +327,12 @@ plot_grid(nacional + theme(legend.position = "none",
                    "Gráfica elaborada el {today()}.")
             )
             , sqplot, legend, ncol = 1, rel_heights = c(1, 1, 0.1))
-ggsave("images/Regiones_variantes.png", width = 12, height = 12, dpi = 750,
+ggsave("images/Regiones_variantes.png", width = 12, height = 14, dpi = 750,
        bg = "white")
 
 
 #GRÁFICA DE BARRAS
-if (!require(covidmx)){
+if (!require(covidmx) & flag){
   devtools::install_github("RodrigoZepeda/covidmx")
   library(covidmx)
 }
