@@ -125,6 +125,29 @@ mx_surveillance <-  read_csv("variantes_mx.csv") %>%
 
 dbDisconnect(con)
 
+#Datos para publicar
+mx_surveillance %>%
+  group_by(Variant, Semana, Año) %>%
+  summarise(n = n(), .groups = "keep") %>%
+  group_by(Semana, Año) %>%
+  mutate(freq = n / sum(n)) %>%
+  ungroup() %>%
+  arrange(Año, Semana, freq) %>%
+  janitor::clean_names() %>%
+  write_excel_csv("Proporcion_variantes_nacional.csv")
+
+mx_surveillance %>%
+  filter(str_detect(Location,paste0("Mexico City|CDMX|CMX|Distrito Federal",
+                                    "|Ciudad de Mexico|Mexico city"))) %>%
+  group_by(Variant, Semana, Año) %>%
+  summarise(n = n(), .groups = "keep") %>%
+  group_by(Semana, Año) %>%
+  mutate(freq = n / sum(n)) %>%
+  ungroup() %>%
+  arrange(Año, Semana, freq) %>%
+  janitor::clean_names() %>%
+  write_excel_csv("Proporcion_variantes_cdmx.csv")
+
 variantes <- unique(mx_surveillance$Variant)
 fechas    <- unique(mx_surveillance$`Collection date`)
 
