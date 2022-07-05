@@ -1,10 +1,14 @@
 # VariantesCOVID
 
-> **Nota** A partir del 5 de marzo estas gráficas se actualizan diario automáticamente. 
+## Descripción 
+Publicación diaria de las variantes en México usando datos de [GISAID](https://www.gisaid.org/).
++ Tablas en la carpeta `tablas`
++ Gráficas en la carpeta `images`
+
+> **Nota** Si usas los datos debes citar a GISAID (ver referencias)
 
 ![Variantes por región en México dividido en Norte, Sur, Centro y la combinación de Oriente + Oeste](images/Regiones_variantes.png)
-
-Gráficas que ilustran la proporción de casos de COVID-19 por variante en México. 
+ 
 
 ## Datos
 
