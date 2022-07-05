@@ -134,6 +134,8 @@ mx_surveillance %>%
   ungroup() %>%
   arrange(Año, Semana, freq) %>%
   janitor::clean_names() %>%
+  mutate(`Actualizacion` = Sys.time())  %>%
+  mutate(`Fuente` = "GISAID: https://www.gisaid.org/") %>%
   write_excel_csv("Proporcion_variantes_nacional.csv")
 
 mx_surveillance %>%
@@ -146,6 +148,8 @@ mx_surveillance %>%
   ungroup() %>%
   arrange(Año, Semana, freq) %>%
   janitor::clean_names() %>%
+  mutate(`Actualizacion` = Sys.time())  %>%
+  mutate(`Fuente` = "GISAID: https://www.gisaid.org/") %>%
   write_excel_csv("Proporcion_variantes_cdmx.csv")
 
 variantes <- unique(mx_surveillance$Variant)
