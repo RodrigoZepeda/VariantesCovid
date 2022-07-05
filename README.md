@@ -1,5 +1,7 @@
 # VariantesCOVID
 
+![Variantes por región en México dividido en Norte, Sur, Centro y la combinación de Oriente + Oeste](images/Regiones_variantes.png)
+
 ## Descripción 
 Publicación diaria de las variantes en México usando datos de [GISAID](https://www.gisaid.org/).
 + Tablas en la carpeta `tablas`
@@ -7,7 +9,16 @@ Publicación diaria de las variantes en México usando datos de [GISAID](https:/
 
 > **Nota** Si usas los datos debes citar a GISAID (ver referencias)
 
-![Variantes por región en México dividido en Norte, Sur, Centro y la combinación de Oriente + Oeste](images/Regiones_variantes.png)
+## Paquete covidmx en rstats
+
+Para analizar en `R` los datos más actuales de esta publicación instala el paquete [`covidmx`](https://github.com/RodrigoZepeda/covidmx):
+
+```{r}
+#remotes::install_github("RodrigoZepeda/covidmx")
+variantes <- covidmx::descarga_datos_variantes_GISAID()
+```
+
+> **Nota** Si usas los datos del paquete debes citar a GISAID (ver referencias) así como el paquete [`covidmx`](https://github.com/RodrigoZepeda/covidmx). 
  
 
 ## Datos

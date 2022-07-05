@@ -136,7 +136,7 @@ mx_surveillance %>%
   janitor::clean_names() %>%
   mutate(`Actualizacion` = Sys.time())  %>%
   mutate(`Fuente` = "GISAID: https://www.gisaid.org/") %>%
-  write_excel_csv("Proporcion_variantes_nacional.csv")
+  write_excel_csv("tablas/Proporcion_variantes_nacional.csv")
 
 mx_surveillance %>%
   filter(str_detect(Location,paste0("Mexico City|CDMX|CMX|Distrito Federal",
@@ -150,7 +150,7 @@ mx_surveillance %>%
   janitor::clean_names() %>%
   mutate(`Actualizacion` = Sys.time())  %>%
   mutate(`Fuente` = "GISAID: https://www.gisaid.org/") %>%
-  write_excel_csv("Proporcion_variantes_cdmx.csv")
+  write_excel_csv("tablas/Proporcion_variantes_cdmx.csv")
 
 variantes <- unique(mx_surveillance$Variant)
 fechas    <- unique(mx_surveillance$`Collection date`)
