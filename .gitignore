@@ -6,8 +6,11 @@ variant_surveillance.tsv
 Rplots.pdf
 gisaid_user_password.txt
 variantes_mx.csv
+
 # User-specific stuff
 .idea/
+!Proporcion_variantes_nacional.csv
+!Proporcion_variantes_cdmx.csv
 
 # CMake
 cmake-build-*/
