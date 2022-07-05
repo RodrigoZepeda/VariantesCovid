@@ -9,8 +9,8 @@ variantes_mx.csv
 
 # User-specific stuff
 .idea/
-!Proporcion_variantes_nacional.csv
-!Proporcion_variantes_cdmx.csv
+!tablas/Proporcion_variantes_nacional.csv
+!tablas/Proporcion_variantes_cdmx.csv
 
 # CMake
 cmake-build-*/
