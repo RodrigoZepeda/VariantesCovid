@@ -251,7 +251,7 @@ nacional <- plot_state(mx_surveillance, "images/Variantes_Nacional.png",
 
 #CIUDAD DE MÉXICO
 #------------------------------------------------------------------------
-mx_surveillance %>%
+cdmx <- mx_surveillance %>%
   filter(str_detect(Location,
                     paste0("Mexico City|CDMX|CMX|Distrito Federal",
                            "|Ciudad de Mexico|Mexico city"))) %>%
