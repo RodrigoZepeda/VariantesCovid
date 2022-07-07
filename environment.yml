@@ -1,6 +1,8 @@
 name: GISAID
 channels:
   - defaults
+  - conda-forge
+  - bioconda
 dependencies:
   - python=3.9
   - keyring
