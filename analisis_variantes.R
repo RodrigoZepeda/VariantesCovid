@@ -19,6 +19,13 @@ library(glue)
 flag     <- FALSE
 nthreads <- parallel::detectCores() - 2
 
+#Environment de conda
+if (Sys.info()["user"] == "rod"){
+  conda_path <- "/usr/local/Caskroom/miniconda/base/envs/GISAID/bin/python3"
+} else {
+  conda_path <- NULL #FIXME
+}
+
 #Lectura de la base
 #------------------------------------------------
 
@@ -110,20 +117,75 @@ mx_surveillance <- variant_surveillance %>%
   filter(!is.na(`Collection date`)) %>%
   filter(`Collection date` <= today()) %>%
   mutate(Semana = epiweek(`Collection date`)) %>%
-  mutate(Año = year(`Collection date`)) 
+  mutate(Año = year(`Collection date`))
 
-mx_surveillance %>% 
+mx_surveillance %>%
   write_excel_csv("variantes_mx.csv")
 
-mx_surveillance <-  read_csv("variantes_mx.csv") %>%
-      mutate(Variant = if_else(str_detect(Variant, "Omicron"), 
-                               paste0("Omicron ", str_sub(`Pango lineage`,1,4)), Variant)) %>%
-      mutate(Variant = if_else(str_detect(Variant, "Omicron") &
-                                 str_detect(`Pango lineage`,"Unassigned"),"Omicron (sin_asignar)", 
-                               Variant)) %>%
-      mutate(Variant = word(Variant, 1,2, sep = " "))
-
 dbDisconnect(con)
+
+mx_surveillance <-  read_csv("variantes_mx.csv")
+
+#Agregamos los que no tienen PANGO pero ya calculamos
+recovered_pango <- read_csv("Pango_recovered.csv")
+mx_surveillance <- read_csv("variantes_mx.csv") %>%
+  mutate(`Pango lineage` = if_else(`Pango lineage` == "Unassigned", NA_character_, `Pango lineage`)) %>%
+  left_join(recovered_pango, by = "Accession ID") %>%
+  mutate(`Pango lineage` = if_else(!is.na(`Pango lineage.x`), `Pango lineage.x`, `Pango lineage.y`)) %>%
+  select(-`Pango lineage.x`, -`Pango lineage.y`)
+
+#Creamos la base de datos de los id para descargar y buscarles su linaje
+unassigned <- mx_surveillance %>%
+  filter(is.na(`Pango lineage`)) %>%
+  select(`Accession ID`) %>%
+  write_excel_csv("Unassigned.csv")
+
+if (nrow(unassigned) > 0){
+  #Call python to look for them in GISAID
+  system2(conda_path, "download_fasta.py")
+}
+
+#Process the downloaded FASTA files
+fastas <- list.files("fasta")
+if (length(fastas) > 0){
+  system2("/bin/bash", "get_pangolin.sh")
+}
+
+#Now read the processed fasta files and delete from 'fasta' and move to `Pango_recovered.csv`
+fasta_files <- read_csv(list.files("fasta_processed/", "*.csv", full.names = T), , id="index")
+fasta_files <- fasta_files %>%
+  mutate(`Accession ID` = str_remove_all(index, "fasta_processed|\\/|.csv")) %>%
+  select(`Accession ID`, lineage) %>%
+  rename(`Pango lineage` = lineage)
+
+#Add to list of recovered
+recovered_pango <- recovered_pango %>%
+  full_join(fasta_files)
+
+#Save
+recovered_pango %>% write_excel_csv("Pango_recovered.csv")
+
+for (id in recovered_pango$`Accession ID`){
+  file.remove(glue("fasta_processed/{id}.csv"))
+  file.remove(glue("fasta/{id}.fasta"))
+}
+
+#Re-fit
+mx_surveillance <- read_csv("variantes_mx.csv") %>%
+  mutate(`Pango lineage` = if_else(`Pango lineage` == "Unassigned", NA_character_, `Pango lineage`)) %>%
+  left_join(recovered_pango, by = "Accession ID") %>%
+  mutate(`Pango lineage` = if_else(!is.na(`Pango lineage.x`), `Pango lineage.x`, `Pango lineage.y`)) %>%
+  select(-`Pango lineage.x`, -`Pango lineage.y`) %>%
+  mutate(`Pango lineage` = if_else(is.na(`Pango lineage`), "Unassigned", `Pango lineage`)) %>%
+  mutate(Variant = if_else(str_detect(Variant, "Omicron"),
+                           paste0("Omicron ", str_sub(`Pango lineage`,1,4)), Variant)) %>%
+  mutate(Variant = if_else(str_detect(Variant, "Omicron") &
+                             str_detect(`Pango lineage`,"Unassigned"),"Omicron (sin_asignar)",
+                           Variant)) %>%
+  mutate(Variant = word(Variant, 1,2, sep = " "))
+
+#Remove from fasta and fasta processed if now they have a match
+
 
 #Datos para publicar
 mx_surveillance %>%
@@ -156,7 +218,7 @@ variantes <- unique(mx_surveillance$Variant)
 fechas    <- unique(mx_surveillance$`Collection date`)
 
 #Función para procesamiento
-plot_state <- function(mx_surveillance, plot_name, title_name, subtitle_name = "", 
+plot_state <- function(mx_surveillance, plot_name, title_name, subtitle_name = "",
                        variantes = variantes, fechas = fechas){
 
   vcount <- mx_surveillance %>%
@@ -191,16 +253,16 @@ plot_state <- function(mx_surveillance, plot_name, title_name, subtitle_name = "
     filter(fecha_proxy > ymd("2021-03-20") & year(fecha_proxy) <= year(today()))
 
   #Distribución actual
-  dactual            <- vcount %>% 
+  dactual            <- vcount %>%
     filter(fecha_proxy == max(fecha_proxy)) %>%
     arrange(desc(Prop))
   variantes_actuales <- ""
   for (i in 1:nrow(dactual)){
-    variantes_actuales <- paste0(variantes_actuales, 
+    variantes_actuales <- paste0(variantes_actuales,
                                  glue("{dactual[i,'Variant']}: {scales::percent(dactual[i,'Prop'][[1]])}"),
                                  "\n")
   }
-    
+
   #Sys.setlocale(locale="es_ES.UTF-8")
   colores        <- met.brewer("Hiroshige", length(variantes), "continuous")
   names(colores) <- sort(variantes)
@@ -212,19 +274,19 @@ plot_state <- function(mx_surveillance, plot_name, title_name, subtitle_name = "
       y = "Porcentaje de casos registrados",
       title = title_name,
       subtitle = subtitle_name,
-      caption  = glue("**Fuente:** GISAID EpiFlu™ Database. ", 
+      caption  = glue("**Fuente:** GISAID EpiFlu™ Database. ",
                       "| **Github**: RodrigoZepeda/VariantesCovid<br>",
                         "Gráfica elaborada el {today()} usando datos hasta el {max(vcount$fecha_proxy)}.")
     ) +
     annotate("label", x = ymd("2021/04/01"), y = 0.95, hjust = 0, vjust = 1, alpha = 0.75,
                   fill = "white", size = 2.75,
-             label = glue("Distribución actual:\n", 
+             label = glue("Distribución actual:\n",
                           "--------------------\n",
                           variantes_actuales)) +
     scale_x_date(date_labels = "%B %y", date_breaks = "1 month", expand = c(0,0)) +
-    scale_y_continuous(labels = scales::percent, expand = c(0,0)) + 
+    scale_y_continuous(labels = scales::percent, expand = c(0,0)) +
     scale_fill_manual("Variante/Subvariante", values = colores) +
-    theme(panel.background = element_rect(fill = "white"), 
+    theme(panel.background = element_rect(fill = "white"),
           plot.background = element_rect(fill = "white", color = "white"),
           axis.text.x = element_text(angle = 45, size = 10, hjust = 1),
           legend.position = "bottom",
@@ -233,7 +295,7 @@ plot_state <- function(mx_surveillance, plot_name, title_name, subtitle_name = "
           plot.subtitle = element_markdown(size = 12, hjust = 0.5),
           plot.caption = element_markdown(),
           axis.line = element_blank(),
-          axis.line.y.left = element_line()) 
+          axis.line.y.left = element_line())
   ggsave(plot_name, variantplot, width = 10, height = 6, dpi = 750, bg = "white")
 
   return(variantplot)
@@ -245,8 +307,8 @@ plot_state <- function(mx_surveillance, plot_name, title_name, subtitle_name = "
 
 #NACIONAL
 #------------------------------------------------------------------------
-nacional <- plot_state(mx_surveillance, "images/Variantes_Nacional.png", 
-           "Variantes de <span style='color:#006400'>SARS-CoV-2</span> en México", 
+nacional <- plot_state(mx_surveillance, "images/Variantes_Nacional.png",
+           "Variantes de <span style='color:#006400'>SARS-CoV-2</span> en México",
            "_Proporción de variantes a nivel nacional_", variantes =  variantes, fechas)
 
 #CIUDAD DE MÉXICO
@@ -255,7 +317,7 @@ cdmx <- mx_surveillance %>%
   filter(str_detect(Location,
                     paste0("Mexico City|CDMX|CMX|Distrito Federal",
                            "|Ciudad de Mexico|Mexico city"))) %>%
-  plot_state("images/Variantes_CDMX.png", 
+  plot_state("images/Variantes_CDMX.png",
              "Variantes de <span style='color:#006400'>SARS-CoV-2</span> en Región CDMX",
              "_Proporción de variantes en Ciudad de México_", variantes = variantes)
 
@@ -268,7 +330,7 @@ norte <- mx_surveillance %>%
                            "Nuevo León|Tamaulipas|Mexicali|Ensenada|Tijuana|",
                            "Hermosillo|Monterrey|Guasave|Ahome|Los Mochis|",
                            "Saltillo|Torreon|Ciudad Juarez|"))) %>%
-  plot_state("images/Variantes_NORTE.png", 
+  plot_state("images/Variantes_NORTE.png",
              "Variantes de <span style='color:#006400'>SARS-CoV-2</span> en Región Norte",
              "_Proporción de variantes en BC, BCS, CHIH, COAH, SIN, SON, DGO, NL, TAM_", variantes)
 
@@ -283,7 +345,7 @@ centro <- mx_surveillance %>%
                            "Edomex|EDOMEX|Estado de mexico|Estado de Mexico|",
                            "State of Mexico|Mexico / Mexico|State of mexico|",
                            "Estado de méxico|Morelos"))) %>%
-  plot_state("images/Variantes_CENTRO.png", 
+  plot_state("images/Variantes_CENTRO.png",
              "Variantes de <span style='color:#006400'>SARS-CoV-2</span> en Región Centro",
              "_Proporción de variantes en AGS, GRO, QRO, ZAC, SLP, CDMX, EDOMEX, MOR_", variantes)
 
@@ -293,7 +355,7 @@ sur <- mx_surveillance %>%
   filter(str_detect(Location,
                     paste0("Chiapas|Guerrero|Guerero|Oaxaca|Mérida|Campeche|",
                            "Quintana Roo|Tabasco|Yucatán|Yucatan|Cancun"))) %>%
-  plot_state("images/Variantes_SUR.png", 
+  plot_state("images/Variantes_SUR.png",
              "Variantes de <span style='color:#006400'>SARS-CoV-2</span> en Región Sur",
              "_Proporción de variantes en  CHIS, GUE, OAX, QROO, CAM, TAB, YUC_", variantes)
 
@@ -303,7 +365,7 @@ oriente_oeste <- mx_surveillance %>%
   filter(str_detect(Location,
                     paste0("Colima|Jalisco|Michoacan|Michoacán|Nayarit|",
                            "Hidalgo|Puebla|Tlaxcala|Veracruz"))) %>%
-  plot_state("images/Variantes_Oriente_y_Oeste.png", 
+  plot_state("images/Variantes_Oriente_y_Oeste.png",
              "Variantes de <span style='color:#006400'>SARS-CoV-2</span> en Regiones Oriente + Oeste",
              "_Proporción de variantes en COL, JAL, MICH, NAY, HGO, PUE, TLAX, VER_", variantes)
 
@@ -313,19 +375,19 @@ mx_surveillance <- mx_surveillance %>%
   filter(fecha_proxy <= today())
 
 sqplot <- plot_grid(
-          norte  + ggtitle("NORTE")  + theme(legend.position = "none") + 
+          norte  + ggtitle("NORTE")  + theme(legend.position = "none") +
             labs(caption = "", y = "",
                  subtitle = "_BC, BCS, CHIH, COAH, SIN, SON, DGO, NL, TAM_") +
             theme(axis.text.x = element_text(color = "white", angle = 0),
                   axis.ticks.x  = element_line(color = "white")) +
             coord_cartesian(xlim = c(min(mx_surveillance$fecha_proxy), max(mx_surveillance$fecha_proxy))),
-          centro + ggtitle("CENTRO") + theme(legend.position = "none") + 
+          centro + ggtitle("CENTRO") + theme(legend.position = "none") +
             labs(caption = "", y = "",
                  subtitle = "_AGS, GRO, QRO, ZAC, SLP, CDMX, EDOMEX, MOR_") +
             theme(axis.text.x = element_text(color = "white", angle = 0),
                   axis.ticks.x  =element_line(color = "white")) +
             coord_cartesian(xlim = c(min(mx_surveillance$fecha_proxy), max(mx_surveillance$fecha_proxy))),
-          sur    + ggtitle("SUR")    + theme(legend.position = "none") + 
+          sur    + ggtitle("SUR")    + theme(legend.position = "none") +
             labs(caption = "", y = "",
                  subtitle = "_CHIS, GUE, OAX, QROO, CAM, TAB, YUC_") +
             coord_cartesian(xlim = c(min(mx_surveillance$fecha_proxy), max(mx_surveillance$fecha_proxy))),
@@ -347,9 +409,9 @@ legend <- get_legend(
 plot_grid(nacional + theme(legend.position = "none",
                            plot.title = element_markdown(size = 30)) + ylab("") +
             labs(
-              title = "Variantes de <span style='color:#006400'>SARS-CoV-2</span> en México", 
+              title = "Variantes de <span style='color:#006400'>SARS-CoV-2</span> en México",
               caption = "",
-              subtitle = glue("**Fuente:** GISAID EpiFlu™ Database |", 
+              subtitle = glue("**Fuente:** GISAID EpiFlu™ Database |",
                               " **Github**: RodrigoZepeda/VariantesCovid | ",
                    "Gráfica elaborada el {today()}.")
             )
