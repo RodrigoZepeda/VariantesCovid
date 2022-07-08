@@ -18,12 +18,16 @@ library(glue)
 
 flag     <- FALSE
 nthreads <- parallel::detectCores() - 2
+attempts <- 10 #Intentos de descarga
 
 #Environment de conda
 if (Sys.info()["user"] == "rod"){
   conda_path <- "/usr/local/Caskroom/miniconda/base/envs/GISAID/bin/python3"
+} else if (Sys.info()["user"] == "rodrigo") {
+  conda_path <- "/home/rodrigo/miniconda3/envs/GISAID/bin/python3"
 } else {
-  conda_path <- NULL #FIXME
+  conda_path <- NULL
+  stop("Pon tu conda path en la línea 28")
 }
 
 #Lectura de la base
@@ -124,8 +128,6 @@ mx_surveillance %>%
 
 dbDisconnect(con)
 
-mx_surveillance <-  read_csv("variantes_mx.csv")
-
 #Agregamos los que no tienen PANGO pero ya calculamos
 recovered_pango <- read_csv("Pango_recovered.csv")
 mx_surveillance <- read_csv("variantes_mx.csv") %>%
@@ -140,42 +142,58 @@ unassigned <- mx_surveillance %>%
   select(`Accession ID`) %>%
   write_excel_csv("Unassigned.csv")
 
-if (nrow(unassigned) > 0){
-  #Call python to look for them in GISAID
-  system2(conda_path, "download_fasta.py")
-}
-
-#Process the downloaded FASTA files
-fastas <- list.files("fasta")
-if (length(fastas) > 0){
-  system2("/bin/bash", "get_pangolin.sh")
-}
-
-#Now read the processed fasta files and delete from 'fasta' and move to `Pango_recovered.csv`
-fasta_files <- read_csv(list.files("fasta_processed/", "*.csv", full.names = T), , id="index")
-fasta_files <- fasta_files %>%
-  mutate(`Accession ID` = str_remove_all(index, "fasta_processed|\\/|.csv")) %>%
-  select(`Accession ID`, lineage) %>%
-  rename(`Pango lineage` = lineage)
-
-#Add to list of recovered
-recovered_pango <- recovered_pango %>%
-  full_join(fasta_files)
-
-#Save
-recovered_pango %>% write_excel_csv("Pango_recovered.csv")
-
-for (id in recovered_pango$`Accession ID`){
-  file.remove(glue("fasta_processed/{id}.csv"))
-  file.remove(glue("fasta/{id}.fasta"))
+while (attempts > 0 & (nrow(unassigned) > 0 | length(list.files("fasta")) > 0)){
+  
+  if (nrow(unassigned) > 0){
+    #Call python to look for them in GISAID
+    system2(conda_path, "download_fasta.py")
+  }
+  
+  #Process the downloaded FASTA files
+  fastas <- list.files("fasta")
+  if (length(fastas) > 0){
+    system2("bash", "get_pangolin.sh")
+  }
+  
+  #Now read the processed fasta files and delete from 'fasta' and move to `Pango_recovered.csv`
+  fasta_files <- read_csv(list.files("fasta_processed/", "*.csv", full.names = T), , id="index")
+  fasta_files <- fasta_files %>%
+    mutate(`Accession ID` = str_remove_all(index, "fasta_processed|\\/|.csv")) %>%
+    select(`Accession ID`, lineage) %>%
+    rename(`Pango lineage` = lineage)
+  
+  #Add to list of recovered
+  recovered_pango <- recovered_pango %>%
+    full_join(fasta_files)
+  
+  #Save
+  recovered_pango %>% write_excel_csv("Pango_recovered.csv")
+  
+  for (id in recovered_pango$`Accession ID`){
+    if (file.exists(glue("fasta_processed/{id}.csv"))){
+      file.remove(glue("fasta_processed/{id}.csv"))
+    }
+    if (file.exists(glue("fasta/{id}.fasta"))){
+      file.remove(glue("fasta/{id}.fasta"))
+    }
+  }
+  
+  mx_surveillance <- read_csv("variantes_mx.csv") %>%
+    mutate(`Pango lineage` = if_else(`Pango lineage` == "Unassigned", NA_character_, `Pango lineage`)) %>%
+    left_join(recovered_pango, by = "Accession ID") %>%
+    mutate(`Pango lineage` = if_else(!is.na(`Pango lineage.x`), `Pango lineage.x`, `Pango lineage.y`)) %>%
+    select(-`Pango lineage.x`, -`Pango lineage.y`)
+ 
+  unassigned <- mx_surveillance %>%
+    filter(is.na(`Pango lineage`)) %>%
+    select(`Accession ID`) %>%
+    write_excel_csv("Unassigned.csv")
+ 
+  attempts <- attempts - 1 
 }
 
 #Re-fit
-mx_surveillance <- read_csv("variantes_mx.csv") %>%
-  mutate(`Pango lineage` = if_else(`Pango lineage` == "Unassigned", NA_character_, `Pango lineage`)) %>%
-  left_join(recovered_pango, by = "Accession ID") %>%
-  mutate(`Pango lineage` = if_else(!is.na(`Pango lineage.x`), `Pango lineage.x`, `Pango lineage.y`)) %>%
-  select(-`Pango lineage.x`, -`Pango lineage.y`) %>%
+mx_surveillance <- mx_surveillance %>%
   mutate(`Pango lineage` = if_else(is.na(`Pango lineage`), "Unassigned", `Pango lineage`)) %>%
   mutate(Variant = if_else(str_detect(Variant, "Omicron"),
                            paste0("Omicron ", str_sub(`Pango lineage`,1,4)), Variant)) %>%
