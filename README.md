@@ -59,6 +59,12 @@ export MariaDB_password="password"
 
 4. Cambia los paths en el `orchestrate.sh` y vulélvelo ejecutable con `chmod +x orchestrate.sh`.
 
+## Funcionamiento
+
+Algunas de las variantes que no fueron asignadas a un linaje uso `pangolin` para asignarlas. Para ello el ciclo se vuelve más complejo pues hay que descargar los `FASTA` de GISAID. El diagrama es así 
+
+![Diagrama que muestra que primero se llama download_gisaid luego analisis_variantes que a su vez llama download_fasta y después a get_pangolin para volver a analisis_variantes y generar el reporte](images/diagrama_proceso.png)
+
 ## Referencias de GISAID
 
 Khare, S., et al (2021) _GISAID’s Role in Pandemic Response._ China CDC Weekly, 3(49): 1049-1051. [doi:10.46234/ccdcw2021.255](doi:10.46234/ccdcw2021.255)  PMCID: 8668406

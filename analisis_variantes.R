@@ -44,10 +44,10 @@ untar(fname, as.character(tsv_name))
 
 #Creamos el MARIADB
 #------------------------------------------------
-con    <- dbConnect(RMariaDB::MariaDB(),
+con    <- DBI::dbConnect(RMariaDB::MariaDB(),
                     user     = Sys.getenv("MariaDB_user"),
                     password = Sys.getenv("MariaDB_password"),
-                    dbname = "COVID")
+                    dbname = "covidmx")
 
 header <- read_delim(tsv_name, delim = "\t", n_max = 100, escape_double = FALSE,
                      trim_ws = TRUE, show_col_types = FALSE)
@@ -83,7 +83,7 @@ tryCatch({
                     " --user={Sys.getenv('MariaDB_user')}",
                     " --password={Sys.getenv('MariaDB_password')}",
                     " --use-threads={nthreads}",
-                    " --local COVID variant_surveillance.tsv"))
+                    " --local covidmx variant_surveillance.tsv"))
 },
 error=function(e) {
 
@@ -114,7 +114,7 @@ mx_surveillance <- variant_surveillance %>%
   filter(str_detect(Location,"Mexico")) %>%
   filter(!str_detect(Location,"New Mexico")) %>%
   filter(`Is complete?` == "True") %>%
-  filter(Variant != "") %>%
+  #filter(Variant != "") %>%
   collapse() %>%
   as.data.frame %>%
   mutate(`Collection date` = ymd(`Collection date`)) %>%
@@ -134,7 +134,8 @@ mx_surveillance <- read_csv("variantes_mx.csv") %>%
   mutate(`Pango lineage` = if_else(`Pango lineage` == "Unassigned", NA_character_, `Pango lineage`)) %>%
   left_join(recovered_pango, by = "Accession ID") %>%
   mutate(`Pango lineage` = if_else(!is.na(`Pango lineage.x`), `Pango lineage.x`, `Pango lineage.y`)) %>%
-  select(-`Pango lineage.x`, -`Pango lineage.y`)
+  select(-`Pango lineage.x`, -`Pango lineage.y`) %>%
+  mutate(`Collection date` <= today())
 
 #Creamos la base de datos de los id para descargar y buscarles su linaje
 unassigned <- mx_surveillance %>%
@@ -196,11 +197,20 @@ while (attempts > 0 & (nrow(unassigned) > 0 | length(list.files("fasta")) > 0)){
 mx_surveillance <- mx_surveillance %>%
   mutate(`Pango lineage` = if_else(is.na(`Pango lineage`), "Unassigned", `Pango lineage`)) %>%
   mutate(Variant = if_else(str_detect(Variant, "Omicron"),
-                           paste0("Omicron ", str_sub(`Pango lineage`,1,4)), Variant)) %>%
+                           paste0("Omicron ", str_sub(`Pango lineage`,1,5)), Variant)) %>%
   mutate(Variant = if_else(str_detect(Variant, "Omicron") &
                              str_detect(`Pango lineage`,"Unassigned"),"Omicron (sin_asignar)",
                            Variant)) %>%
-  mutate(Variant = word(Variant, 1,2, sep = " "))
+  mutate(Variant = word(Variant, 1,2, sep = " ")) %>%
+  mutate(Variant = case_when(
+    str_detect(Variant, "Omicron BA.5") ~ "Omicron BA.5",
+    str_detect(Variant, "Omicron BA.2") ~ "Omicron BA.2",
+    str_detect(Variant, "Omicron BA.1") ~ "Omicron BA.1",
+    str_detect(Variant, "Omicron BA.4") ~ "Omicron BA.4",
+    TRUE ~ Variant
+  )) %>%
+  mutate(Variant = if_else(str_detect(`Pango lineage`,"BA.2.75"), "Omicron BA.2.75", Variant)) %>%
+  filter(!is.na(Variant))
 
 #Remove from fasta and fasta processed if now they have a match
 
@@ -277,7 +287,7 @@ plot_state <- function(mx_surveillance, plot_name, title_name, subtitle_name = "
   variantes_actuales <- ""
   for (i in 1:nrow(dactual)){
     variantes_actuales <- paste0(variantes_actuales,
-                                 glue("{dactual[i,'Variant']}: {scales::percent(dactual[i,'Prop'][[1]])}"),
+                                 glue("{dactual[i,'Variant']}: {scales::percent(dactual[i,'Prop'][[1]])} (n = {dactual[i,'n'][[1]]})"),
                                  "\n")
   }
 
@@ -285,8 +295,15 @@ plot_state <- function(mx_surveillance, plot_name, title_name, subtitle_name = "
   colores        <- met.brewer("Hiroshige", length(variantes), "continuous")
   names(colores) <- sort(variantes)
   Sys.setlocale("LC_ALL",'es_MX.UTF-8')
-  variantplot <- ggplot(vcount) +
-    geom_stream(aes(x = fecha_proxy, y = n, fill = Variant), type = "proportional", alpha = 1) +
+  
+  vcount2 <- vcount %>% 
+    filter(fecha_proxy == max(fecha_proxy)) %>%
+    mutate(fecha_proxy = fecha_proxy + weeks(1)) %>%
+    bind_rows(vcount)
+  
+  variantplot <- ggplot(vcount2) +
+    geom_stream(aes(x = fecha_proxy, y = n, fill = Variant), type = "proportional", alpha = 1,
+                bw = 0.5) +
     labs(
       x = "",
       y = "Porcentaje de casos registrados",
@@ -296,7 +313,7 @@ plot_state <- function(mx_surveillance, plot_name, title_name, subtitle_name = "
                       "| **Github**: RodrigoZepeda/VariantesCovid<br>",
                         "Gráfica elaborada el {today()} usando datos hasta el {max(vcount$fecha_proxy)}.")
     ) +
-    annotate("label", x = ymd("2021/04/01"), y = 0.95, hjust = 0, vjust = 1, alpha = 0.75,
+    annotate("label", x = ymd("2021/04/20"), y = 0.95, hjust = 0, vjust = 1, alpha = 0.75,
                   fill = "white", size = 2.75,
              label = glue("Distribución actual:\n",
                           "--------------------\n",
