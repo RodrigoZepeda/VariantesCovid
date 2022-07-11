@@ -24,7 +24,9 @@ attempts <- 10 #Intentos de descarga
 if (Sys.info()["user"] == "rod"){
   conda_path <- "/usr/local/Caskroom/miniconda/base/envs/GISAID/bin/python3"
 } else if (Sys.info()["user"] == "rodrigo") {
-  conda_path <- "/home/rodrigo/miniconda3/envs/GISAID/bin/python3"
+  #Install pangolin in a different conda env as the other GISAID stuff is incompatible
+  conda_path       <- "/home/rodrigo/miniconda3/envs/GISAID/bin/python3"
+  conda_path_pango <- "/home/rodrigo/miniconda3/envs/pangolin/bin/python3"
 } else {
   conda_path <- NULL
   stop("Pon tu conda path en la línea 28")
@@ -129,13 +131,23 @@ mx_surveillance %>%
 dbDisconnect(con)
 
 #Agregamos los que no tienen PANGO pero ya calculamos
-recovered_pango <- read_csv("Pango_recovered.csv")
+recovered_pango <- read_csv("Pango_recovered.csv") 
+
+binded_pango <- recovered_pango %>%
+  rename(`Accession ID` = index) %>%
+  mutate(`Accession ID` = str_remove_all(`Accession ID`,"fasta_processed//|.csv")) %>%
+  rename(Variant = scorpio_call) %>%
+  rename(`Pango lineage` = lineage) %>%
+  filter(!is.na(Variant)) %>%
+  select(`Accession ID`, `Pango lineage`)
+  
 mx_surveillance <- read_csv("variantes_mx.csv") %>%
+  filter(Variant != "") %>%
   mutate(`Pango lineage` = if_else(`Pango lineage` == "Unassigned", NA_character_, `Pango lineage`)) %>%
-  left_join(recovered_pango, by = "Accession ID") %>%
+  left_join(binded_pango, by = "Accession ID") %>%
   mutate(`Pango lineage` = if_else(!is.na(`Pango lineage.x`), `Pango lineage.x`, `Pango lineage.y`)) %>%
   select(-`Pango lineage.x`, -`Pango lineage.y`) %>%
-  mutate(`Collection date` <= today())
+  mutate(`Collection date` <= today()) 
 
 #Creamos la base de datos de los id para descargar y buscarles su linaje
 unassigned <- mx_surveillance %>%
@@ -151,37 +163,45 @@ while (attempts > 0 & (nrow(unassigned) > 0 | length(list.files("fasta")) > 0)){
   }
   
   #Process the downloaded FASTA files
-  fastas <- list.files("fasta")
+  fastas <- list.files("fasta", pattern = "EPI.*fasta")
   if (length(fastas) > 0){
     system2("bash", "get_pangolin.sh")
   }
   
   #Now read the processed fasta files and delete from 'fasta' and move to `Pango_recovered.csv`
-  fasta_files <- read_csv(list.files("fasta_processed/", "*.csv", full.names = T), , id="index")
-  fasta_files <- fasta_files %>%
-    mutate(`Accession ID` = str_remove_all(index, "fasta_processed|\\/|.csv")) %>%
-    select(`Accession ID`, lineage) %>%
-    rename(`Pango lineage` = lineage)
-  
+  fasta_files <- read_csv(list.files("fasta_processed/", "*.csv", full.names = T), id="index")
+
   #Add to list of recovered
   recovered_pango <- recovered_pango %>%
-    full_join(fasta_files)
+    full_join(fasta_files) %>%
+    distinct()
   
   #Save
   recovered_pango %>% write_excel_csv("Pango_recovered.csv")
   
-  for (id in recovered_pango$`Accession ID`){
-    if (file.exists(glue("fasta_processed/{id}.csv"))){
-      file.remove(glue("fasta_processed/{id}.csv"))
+  for (id in recovered_pango$index){
+    if (file.exists(id)){
+      file.remove(id)
     }
+    id <- str_remove_all(id,"fasta_processed//|.csv")
     if (file.exists(glue("fasta/{id}.fasta"))){
       file.remove(glue("fasta/{id}.fasta"))
     }
   }
   
+  
+  binded_pango <- recovered_pango %>%
+    rename(`Accession ID` = index) %>%
+    mutate(`Accession ID` = str_remove_all(`Accession ID`,"fasta_processed//|.csv")) %>%
+    rename(Variant = scorpio_call) %>%
+    rename(`Pango lineage` = lineage) %>%
+    filter(!is.na(Variant)) %>%
+    select(`Accession ID`, `Pango lineage`)
+  
   mx_surveillance <- read_csv("variantes_mx.csv") %>%
+    filter(Variant != "") %>%
     mutate(`Pango lineage` = if_else(`Pango lineage` == "Unassigned", NA_character_, `Pango lineage`)) %>%
-    left_join(recovered_pango, by = "Accession ID") %>%
+    left_join(binded_pango, by = "Accession ID") %>%
     mutate(`Pango lineage` = if_else(!is.na(`Pango lineage.x`), `Pango lineage.x`, `Pango lineage.y`)) %>%
     select(-`Pango lineage.x`, -`Pango lineage.y`)
  
@@ -207,13 +227,13 @@ mx_surveillance <- mx_surveillance %>%
     str_detect(Variant, "Omicron BA.2") ~ "Omicron BA.2",
     str_detect(Variant, "Omicron BA.1") ~ "Omicron BA.1",
     str_detect(Variant, "Omicron BA.4") ~ "Omicron BA.4",
+    str_detect(Variant, "Omicron XAF|Omicron XAH|Omicron BG|Omicron B.1.1|Omicron BE|Omicron BF|sin_asignar") ~ "Omicron (otros)",
     TRUE ~ Variant
   )) %>%
   mutate(Variant = if_else(str_detect(`Pango lineage`,"BA.2.75"), "Omicron BA.2.75", Variant)) %>%
   filter(!is.na(Variant))
 
 #Remove from fasta and fasta processed if now they have a match
-
 
 #Datos para publicar
 mx_surveillance %>%
@@ -309,7 +329,7 @@ plot_state <- function(mx_surveillance, plot_name, title_name, subtitle_name = "
       y = "Porcentaje de casos registrados",
       title = title_name,
       subtitle = subtitle_name,
-      caption  = glue("**Fuente:** GISAID EpiFlu™ Database. ",
+      caption  = glue("**Fuente:** GISAID EpiCoV™ Database. ",
                       "| **Github**: RodrigoZepeda/VariantesCovid<br>",
                         "Gráfica elaborada el {today()} usando datos hasta el {max(vcount$fecha_proxy)}.")
     ) +
@@ -332,6 +352,7 @@ plot_state <- function(mx_surveillance, plot_name, title_name, subtitle_name = "
           axis.line = element_blank(),
           axis.line.y.left = element_line())
   ggsave(plot_name, variantplot, width = 10, height = 6, dpi = 750, bg = "white")
+  ggsave(str_replace_all(plot_name,".png",".pdf"), variantplot, width = 10, height = 6, dpi = 750, bg = "white")
 
   return(variantplot)
 }
@@ -446,7 +467,7 @@ plot_grid(nacional + theme(legend.position = "none",
             labs(
               title = "Variantes de <span style='color:#006400'>SARS-CoV-2</span> en México",
               caption = "",
-              subtitle = glue("**Fuente:** GISAID EpiFlu™ Database |",
+              subtitle = glue("**Fuente:** GISAID EpiCoV™ Database |",
                               " **Github**: RodrigoZepeda/VariantesCovid | ",
                    "Gráfica elaborada el {today()}.")
             )
