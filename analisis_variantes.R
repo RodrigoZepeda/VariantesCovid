@@ -474,6 +474,8 @@ plot_grid(nacional + theme(legend.position = "none",
             , sqplot, legend, ncol = 1, rel_heights = c(1, 1, 0.1))
 ggsave("images/Regiones_variantes.png", width = 12, height = 14, dpi = 750,
        bg = "white")
+ggsave("images/Regiones_variantes.pdf", width = 12, height = 14, dpi = 750,
+       bg = "white")
 
 
 #GRÁFICA DE BARRAS
