@@ -63,7 +63,14 @@ export MariaDB_password="password"
 
 Algunas de las variantes que no fueron asignadas a un linaje uso `pangolin` para asignarlas. Para ello el ciclo se vuelve más complejo pues hay que descargar los `FASTA` de GISAID. El diagrama es así 
 
-![Diagrama que muestra que primero se llama download_gisaid luego analisis_variantes que a su vez llama download_fasta y después a get_pangolin para volver a analisis_variantes y generar el reporte](images/diagrama_proceso.png)
+```mermaid
+flowchart TD;
+    a[<code>download_gisaid.py</code><br>Descarga los datos<br>de GISAID]-->b[<code>analisis_variantes.R</code><br>Identifica los datos<br>de variantes faltantes];
+    b-->c[<code>download_fasta.py</code><br>Descarga los FASTA que<br> no han sido asignados<br> en GISAID];
+    c-->d[<code>get_pangolin.sh</code><br>Corre <code>pangolin</code> para <br> clasificar el FASTA];
+    d-->b;
+    b-->e[<code>analisis_variantes.R</code><br>Genera el reporte<br>diario de variantes];
+```
 
 ## Referencias de GISAID
 
