@@ -227,7 +227,7 @@ mx_surveillance <- mx_surveillance %>%
     str_detect(Variant, "Omicron BA.2") ~ "Omicron BA.2",
     str_detect(Variant, "Omicron BA.1") ~ "Omicron BA.1",
     str_detect(Variant, "Omicron BA.4") ~ "Omicron BA.4",
-    str_detect(Variant, "Omicron BG|Omicron X|Omicron B.1.1|Omicron BE|Omicron BF|sin_asignar") ~ "Omicron (otros)",
+    str_detect(Variant, "Omicron BG|Omicron X|Omicron AY|Omicron B.1.1|Omicron BE|Omicron BF|sin_asignar") ~ "Omicron (otros)",
     TRUE ~ Variant
   )) %>%
   mutate(Variant = if_else(str_detect(`Pango lineage`,"BA.2.75"), "Omicron BA.2.75", Variant)) %>%
