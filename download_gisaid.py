@@ -59,8 +59,8 @@ option.add_experimental_option("prefs", {
 print("Opening chrome")
 browser = webdriver.Chrome(executable_path=direccion_chromedriver, options=option)
 browser.set_window_size(2000,1000)
-browser.get("https://www.gisaid.org/")
-browser.find_element_by_class_name("Login").click()
+browser.get("https://www.epicov.org/epi3/start")
+#browser.find_element_by_class_name("Login").click()
 time.sleep(sleep_time)
 
 #Login with password
