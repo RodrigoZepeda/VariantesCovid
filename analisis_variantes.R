@@ -32,8 +32,7 @@ if (Sys.info()["user"] == "rod"){
   stop("Pon tu conda path en la línea 28")
 }
 
-#Lectura de la base
-#------------------------------------------------
+#Lectura de la base ------------------------------------------------
 
 #Get latest tar file
 tarfiles <- list.files(pattern = "variant_surveillance_tsv.*.tar", full.names = T)
@@ -44,8 +43,7 @@ tsv_name <- untar(fname, list = TRUE)
 tsv_name <- tsv_name[which(str_detect(tsv_name,".tsv"))]
 untar(fname, as.character(tsv_name))
 
-#Creamos el MARIADB
-#------------------------------------------------
+#Creamos el MARIADB ------------------------------------------------
 con    <- DBI::dbConnect(RMariaDB::MariaDB(),
                     user     = Sys.getenv("MariaDB_user"),
                     password = Sys.getenv("MariaDB_password"),
@@ -110,8 +108,7 @@ variant_surveillance <- tbl(con, "variant_surveillance")
 #dbFetch(res)
 #dbClearResult(res)
 
-#Filtro para Mexico
-#------------------------------------------------
+#Filtro para Mexico-----------------------------------------------
 mx_surveillance <- variant_surveillance %>%
   filter(str_detect(Location,"Mexico")) %>%
   filter(!str_detect(Location,"New Mexico")) %>%
@@ -457,26 +454,30 @@ sqplot <- plot_grid(
 # extract the legend from one of the plots
 legend <- get_legend(
   norte +
-    guides(fill = guide_legend(nrow = 2)) +
+    guides(fill = guide_legend(nrow = 2, title.position = "top")) +
     theme(legend.position = "bottom")
 )
 
 # add the legend
 plot_grid(nacional + theme(legend.position = "none",
+                           plot.subtitle   = element_markdown(size = 10, hjust = 0.5, 
+                                                              margin = margin(0,0,0,0)),
                            plot.title = element_markdown(size = 30)) + ylab("") +
             labs(
               title = "Variantes de <span style='color:#006400'>SARS-CoV-2</span> en México",
               caption = "",
-              subtitle = glue("**Fuente:** GISAID EpiCoV™ Database |",
-                              " **Github**: RodrigoZepeda/VariantesCovid | ",
-                   "Gráfica elaborada el {today()}.")
+              subtitle = glue("**Fuente:** GISAID EpiCoV Database |",
+                              " **Github:** RodrigoZepeda/VariantesCovid | ",
+                   "Elaborada el {today()}.")
             )
             , sqplot, legend, ncol = 1, rel_heights = c(1, 1, 0.1))
-ggsave("images/Regiones_variantes.png", width = 12, height = 14, dpi = 750,
-       bg = "white")
 ggsave("images/Regiones_variantes.pdf", width = 12, height = 14, dpi = 750,
        bg = "white")
 
+if (require(ghostpdf)){
+  #There was an issue with ggsave to png this solves it
+  ghostpdf::pdf_to_image("images/Regiones_variantes.pdf", output_file = "images/Regiones_variantes.png")
+}
 
 #GRÁFICA DE BARRAS
 if (!require(covidmx) & flag){
