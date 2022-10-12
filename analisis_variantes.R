@@ -166,10 +166,14 @@ mx_surveillance <- mx_surveillance %>%
                            Variant)) %>%
   mutate(Variant = word(Variant, 1,2, sep = " ")) %>%
   mutate(Variant = case_when(
-    str_detect(Variant, "Omicron BA.5") ~ "Omicron BA.5",
-    str_detect(Variant, "Omicron BA.2") ~ "Omicron BA.2",
-    str_detect(Variant, "Omicron BA.1") ~ "Omicron BA.1",
-    str_detect(Variant, "Omicron BA.4") ~ "Omicron BA.4",
+    str_detect(Pango.lineage, "BA.5.2.1.7|BF.7") ~ "Omicron BF.7",
+    str_detect(Pango.lineage, "XBB")     ~ "Omicron XBB",
+    str_detect(Pango.lineage, "BA.5")    ~ "Omicron BA.5",
+    str_detect(Pango.lineage, "BA.2.75") ~ "Omicron BA.2.75",
+    str_detect(Pango.lineage, "BA.2")    ~ "Omicron BA.2",
+    str_detect(Pango.lineage, "BA.1")    ~ "Omicron BA.1",
+    str_detect(Pango.lineage, "BA.4")    ~ "Omicron BA.4",
+    str_detect(Pango.lineage, "BN.1")    ~ "Omicron BN.1",
     str_detect(Variant, "Omicron BG|Omicron X|Omicron AY|Omicron B.1.1|Omicron BE|Omicron BF|sin_asignar") ~ "Omicron (otros)",
     TRUE ~ Variant
   )) %>%

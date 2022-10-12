@@ -2,6 +2,10 @@
 
 ![Variantes por región en México dividido en Norte, Sur, Centro y la combinación de Oriente + Oeste](images/Regiones_variantes.png)
 
+## Nacional
+
+![Variantes a nivel nacional](images/Variantes_Nacional.png)
+
 ## Descripción 
 Publicación diaria de las variantes en México usando datos de [GISAID](https://www.gisaid.org/).
 + Tablas en la carpeta `tablas`
