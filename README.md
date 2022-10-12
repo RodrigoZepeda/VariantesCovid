@@ -1,10 +1,32 @@
 # VariantesCOVID
 
+## Imágenes
+
 ![Variantes por región en México dividido en Norte, Sur, Centro y la combinación de Oriente + Oeste](images/Regiones_variantes.png)
 
-## Nacional
+### Nacional
 
 ![Variantes a nivel nacional](images/Variantes_Nacional.png)
+
+### CDMX
+
+![Variantes en Ciudad de México](images/Variantes_CDMX.png)
+
+### Norte
+
+![Variantes en región norte](images/Variantes_NORTE.png)
+
+### Oriente y Oeste
+
+![Variantes en regiones oriente y oeste](images/Variantes_Oriente_y_Oeste.png)
+
+### Sur 
+
+![Variantes a en región del sur](images/Variantes_SUR.png)
+
+### Sur 
+
+![Variantes a en región del centro](images/Variantes_SUR.png)
 
 ## Descripción 
 Publicación diaria de las variantes en México usando datos de [GISAID](https://www.gisaid.org/).
