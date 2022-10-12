@@ -174,10 +174,9 @@ mx_surveillance <- mx_surveillance %>%
     str_detect(Pango.lineage, "BA.1")    ~ "Omicron BA.1",
     str_detect(Pango.lineage, "BA.4")    ~ "Omicron BA.4",
     str_detect(Pango.lineage, "BN.1")    ~ "Omicron BN.1",
-    str_detect(Variant, "Omicron BG|Omicron X|Omicron AY|Omicron B.1.1|Omicron BE|Omicron BF|sin_asignar") ~ "Omicron (otros)",
+    str_detect(Variant, "Omicron BG|Omicron X|Omicron AY|Omicron B.1.1|Omicron BE|Omicron|Omicron BF|sin_asignar") ~ "Omicron (otros)",
     TRUE ~ Variant
   )) %>%
-  mutate(Variant = if_else(str_detect(`Pango.lineage`,"BA.2.75"), "Omicron BA.2.75", Variant)) %>%
   filter(!is.na(Variant))
 
 #Remove from fasta and fasta processed if now they have a match
@@ -209,6 +208,10 @@ mx_surveillance %>%
   mutate(`Fuente` = "GISAID: https://www.gisaid.org/") %>%
   write_excel_csv("tablas/Proporcion_variantes_cdmx.csv")
 
+mx_surveillance <- mx_surveillance %>%
+  mutate(fecha_proxy = ymd(paste0(Año,"/01/03")) + weeks(Semana)) %>%
+  filter(fecha_proxy > today() - years(1))
+
 variantes <- unique(mx_surveillance$Variant)
 fechas    <- unique(mx_surveillance$Collection.date)
 
@@ -223,7 +226,7 @@ plot_state <- function(mx_surveillance, plot_name, title_name, subtitle_name = "
     mutate(fecha_proxy = ymd(paste0(Año,"/01/03")) + weeks(Semana)) %>%
     filter(fecha_proxy > ymd("2021-03-20")) %>%
     mutate(fecha_proxy = if_else(year(fecha_proxy) > Año, fecha_proxy - years(1),
-                                 fecha_proxy))
+                                 fecha_proxy)) 
 
   vprop <- vcount %>%
     group_by(Semana, Año, fecha_proxy) %>%
@@ -251,6 +254,7 @@ plot_state <- function(mx_surveillance, plot_name, title_name, subtitle_name = "
   dactual            <- vcount %>%
     filter(fecha_proxy == max(fecha_proxy)) %>%
     arrange(desc(Prop))
+  
   variantes_actuales <- ""
   for (i in 1:nrow(dactual)){
     variantes_actuales <- paste0(variantes_actuales,
@@ -270,17 +274,17 @@ plot_state <- function(mx_surveillance, plot_name, title_name, subtitle_name = "
   
   variantplot <- ggplot(vcount2) +
     geom_stream(aes(x = fecha_proxy, y = n, fill = Variant), type = "proportional", alpha = 1,
-                bw = 0.5) +
+                bw = 0.75) +
     labs(
       x = "",
       y = "Porcentaje de casos registrados",
       title = title_name,
       subtitle = subtitle_name,
-      caption  = glue("**Fuente:** GISAID EpiCoV™ Database. ",
-                      "| **Github**: RodrigoZepeda/VariantesCovid<br>",
+      caption  = glue("**Fuente:** GISAID EpiCoV Database. ",
+                      "| **Github**: RodrigoZepeda/VariantesCovid | ",
                         "Gráfica elaborada el {today()} usando datos hasta el {max(vcount$fecha_proxy)}.")
     ) +
-    annotate("label", x = ymd("2021/04/20"), y = 0.95, hjust = 0, vjust = 1, alpha = 0.75,
+    annotate("label", x = today() - years(1) + days(14), y = 0.95, hjust = 0, vjust = 1, alpha = 0.75,
                   fill = "white", size = 2.75,
              label = glue("Distribución actual:\n",
                           "--------------------\n",
@@ -297,7 +301,7 @@ plot_state <- function(mx_surveillance, plot_name, title_name, subtitle_name = "
           plot.subtitle = element_markdown(size = 12, hjust = 0.5),
           plot.caption = element_markdown(),
           axis.line = element_blank(),
-          axis.line.y.left = element_line())
+          axis.line.y.left = element_line()) 
   ggsave(plot_name, variantplot, width = 10, height = 6, dpi = 750, bg = "white")
   ggsave(str_replace_all(plot_name,".png",".pdf"), variantplot, width = 10, height = 6, dpi = 750, bg = "white")
 
