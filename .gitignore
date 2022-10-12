@@ -7,6 +7,9 @@ Rplots.pdf
 gisaid_user_password.txt
 variantes_mx.csv
 fasta/
+*.duckdb
+*.duckdb.tmp
+*.duckdb.wal
 
 # User-specific stuff
 .idea/

@@ -3,33 +3,25 @@
 #https://github.com/guillermodeandajauregui/covid19mx-sql/blob/main/data_loader.R
 rm(list = ls())
 
-#library(covidmx)
-library(tidyverse)
-library(lubridate)
-library(ggstream)
-library(MetBrewer)
-library(ggtext)
-library(latexpdf)
-library(cowplot)
-library(DBI)
-library(odbc)
-library(RMariaDB)
-library(glue)
+#remotes::install_github("covidmx")
+pacman::p_load(tidyverse, lubridate, ggstream, MetBrewer, ggtext, latexpdf, cowplot, 
+               DBI, duckdb, glue, reticulate, covidmx, cli)
 
 flag     <- FALSE
-nthreads <- parallel::detectCores() - 2
 attempts <- 10 #Intentos de descarga
 
 #Environment de conda
+#Install pangolin in a different conda env as the other GISAID stuff is incompatible
 if (Sys.info()["user"] == "rod"){
   conda_path <- "/usr/local/Caskroom/miniconda/base/envs/GISAID/bin/python3"
+  conda_path_pango <- "/usr/local/Caskroom/miniconda/base/envs/pangolin/bin/python3"
 } else if (Sys.info()["user"] == "rodrigo") {
-  #Install pangolin in a different conda env as the other GISAID stuff is incompatible
   conda_path       <- "/home/rodrigo/miniconda3/envs/GISAID/bin/python3"
   conda_path_pango <- "/home/rodrigo/miniconda3/envs/pangolin/bin/python3"
 } else {
-  conda_path <- NULL
-  stop("Pon tu conda path en la línea 28")
+  conda_path <- conda_list(conda = "auto")[1,2]
+  conda_path_pango <- conda_path
+  cli::cli_alert_danger("Usando el conda default de {conda_path}")
 }
 
 #Lectura de la base ------------------------------------------------
@@ -38,69 +30,24 @@ if (Sys.info()["user"] == "rod"){
 tarfiles <- list.files(pattern = "variant_surveillance_tsv.*.tar", full.names = T)
 df       <- file.info(tarfiles)
 fname    <- rownames(df)[which.max(df$mtime)]
+cli::cli_alert_info("Usando el archivo {fname}")
 
 tsv_name <- untar(fname, list = TRUE)
 tsv_name <- tsv_name[which(str_detect(tsv_name,".tsv"))]
 untar(fname, as.character(tsv_name))
 
-#Creamos el MARIADB ------------------------------------------------
-con    <- DBI::dbConnect(RMariaDB::MariaDB(),
-                    user     = Sys.getenv("MariaDB_user"),
-                    password = Sys.getenv("MariaDB_password"),
-                    dbname = "covidmx")
+# Get file connection
+cli::cli_alert_info("Creando conexión a duckdb")
+con <- duckdb::dbConnect(
+  drv   = duckdb::duckdb(),
+  dbdir = "datos_gisaid.duckdb",
+)
 
-header <- read_delim(tsv_name, delim = "\t", n_max = 100, escape_double = FALSE,
-                     trim_ws = TRUE, show_col_types = FALSE)
+DBI::dbExecute(con, "PRAGMA memory_limit = '1GB'")
+duckdb_read_csv(conn = con, name = "variant_surveillance", 
+                files = "variant_surveillance.tsv", sep="\t")
 
-#https://derwiki.tumblr.com/post/24490758395/loading-half-a-billion-rows-into-mysql
-resdbi <- dbSendStatement(conn = con,
-                statement = "SET sql_mode = 'NO_ENGINE_SUBSTITUTION,NO_AUTO_CREATE_USER';")
-dbClearResult(resdbi)
-dbWriteTable(conn = con, name = "variant_surveillance", value = header,
-                    overwrite = T)
-resdbi <- dbSendStatement(conn = con, statement = "DELETE FROM variant_surveillance;")
-dbClearResult(resdbi)
-
-for (colname in c("Clade","`Pango lineage`","`AA Substitutions`","Location","Type","`Accession ID`","Variant","Host")){
-  longtext <- glue("ALTER TABLE variant_surveillance MODIFY {colname} TEXT;")
-  resdbi <- dbSendStatement(conn = con, statement = longtext)
-  dbClearResult(resdbi)
-}
-
-logicols <- sapply(header, typeof)
-for (colname in names(logicols[which(logicols == "logical")])){
-  longtext <- glue("ALTER TABLE variant_surveillance MODIFY \`{colname}\` TEXT;")
-  resdbi <- dbSendStatement(conn = con, statement = longtext)
-  dbClearResult(resdbi)
-}
-
-tryCatch({
-  message(glue::glue("Intentando crear tabla en paralelo | Attempting to create table in parallel"))
-  system(glue::glue("mysqlimport --default-character-set=UTF8",
-                    " --fields-terminated-by='\\t'",
-                    " --ignore-lines=1",
-                    " --lines-terminated-by='\\n'",
-                    " --user={Sys.getenv('MariaDB_user')}",
-                    " --password={Sys.getenv('MariaDB_password')}",
-                    " --use-threads={nthreads}",
-                    " --local covidmx variant_surveillance.tsv"))
-},
-error=function(e) {
-
-  #____Writing to table-----
-  message("MARIADB LOAD DATA LOCAL")
-
-  mi_query <- glue("LOAD DATA LOCAL INFILE \'{tsv_name}\' ",
-                   "REPLACE INTO TABLE variant_surveillance ",
-                   "CHARACTER SET UTF8 ",
-                   "COLUMNS TERMINATED BY '\\t' ",
-                   "LINES TERMINATED BY '\\n' ",
-                   "IGNORE 1 LINES;")
-  resdbi <- dbSendStatement(conn = con, statement = mi_query)
-  dbClearResult(resdbi)
-
-})
-
+cli::cli_alert_info("Leyendo tabla de duckdb")
 variant_surveillance <- tbl(con, "variant_surveillance")
 
 #Tests if works
@@ -112,15 +59,14 @@ variant_surveillance <- tbl(con, "variant_surveillance")
 mx_surveillance <- variant_surveillance %>%
   filter(str_detect(Location,"Mexico")) %>%
   filter(!str_detect(Location,"New Mexico")) %>%
-  filter(`Is complete?` == "True") %>%
-  #filter(Variant != "") %>%
-  collapse() %>%
-  as.data.frame %>%
-  mutate(`Collection date` = ymd(`Collection date`)) %>%
-  filter(!is.na(`Collection date`)) %>%
-  filter(`Collection date` <= today()) %>%
-  mutate(Semana = epiweek(`Collection date`)) %>%
-  mutate(Año = year(`Collection date`))
+  filter(`Is.complete.` == "True") %>%
+  mutate(across(everything(), ~ str_remove_all(. , "\\0"))) %>%
+  collect() %>%
+  mutate(Collection.date = ymd(Collection.date)) %>%
+  filter(Collection.date <= today()) %>%
+  mutate(Semana = epiweek(Collection.date)) %>%
+  mutate(Año = epiyear(Collection.date)) %>%
+  filter(!is.na(Collection.date)) 
 
 mx_surveillance %>%
   write_excel_csv("variantes_mx.csv")
@@ -128,28 +74,28 @@ mx_surveillance %>%
 dbDisconnect(con)
 
 #Agregamos los que no tienen PANGO pero ya calculamos
-recovered_pango <- read_csv("Pango_recovered.csv") 
+recovered_pango <- read_csv("Pango_recovered.csv", show_col_types = FALSE) 
 
 binded_pango <- recovered_pango %>%
-  rename(`Accession ID` = index) %>%
-  mutate(`Accession ID` = str_remove_all(`Accession ID`,"fasta_processed//|.csv")) %>%
+  rename(`Accession.ID` = index) %>%
+  mutate(`Accession.ID` = str_remove_all(`Accession.ID`,"fasta_processed//|.csv")) %>%
   rename(Variant = scorpio_call) %>%
-  rename(`Pango lineage` = lineage) %>%
+  rename(`Pango.lineage` = lineage) %>%
   filter(!is.na(Variant)) %>%
-  select(`Accession ID`, `Pango lineage`)
+  select(`Accession.ID`, `Pango.lineage`)
   
-mx_surveillance <- read_csv("variantes_mx.csv") %>%
+mx_surveillance <- read_csv("variantes_mx.csv", show_col_types = F) %>%
   filter(Variant != "") %>%
-  mutate(`Pango lineage` = if_else(`Pango lineage` == "Unassigned", NA_character_, `Pango lineage`)) %>%
-  left_join(binded_pango, by = "Accession ID") %>%
-  mutate(`Pango lineage` = if_else(!is.na(`Pango lineage.x`), `Pango lineage.x`, `Pango lineage.y`)) %>%
-  select(-`Pango lineage.x`, -`Pango lineage.y`) %>%
-  mutate(`Collection date` <= today()) 
+  mutate(`Pango.lineage` = if_else(`Pango.lineage` == "Unassigned", NA_character_, `Pango.lineage`)) %>%
+  left_join(binded_pango, by = "Accession.ID") %>%
+  mutate(`Pango.lineage` = if_else(!is.na(`Pango.lineage.x`), `Pango.lineage.x`, `Pango.lineage.y`)) %>%
+  select(-`Pango.lineage.x`, -`Pango.lineage.y`) %>%
+  mutate(Collection.date <= today()) 
 
 #Creamos la base de datos de los id para descargar y buscarles su linaje
 unassigned <- mx_surveillance %>%
-  filter(is.na(`Pango lineage`)) %>%
-  select(`Accession ID`) %>%
+  filter(is.na(`Pango.lineage`)) %>%
+  select(`Accession.ID`) %>%
   write_excel_csv("Unassigned.csv")
 
 while (attempts > 0 & (nrow(unassigned) > 0 | length(list.files("fasta")) > 0)){
@@ -188,23 +134,23 @@ while (attempts > 0 & (nrow(unassigned) > 0 | length(list.files("fasta")) > 0)){
   
   
   binded_pango <- recovered_pango %>%
-    rename(`Accession ID` = index) %>%
-    mutate(`Accession ID` = str_remove_all(`Accession ID`,"fasta_processed//|.csv")) %>%
+    rename(`Accession.ID` = index) %>%
+    mutate(`Accession.ID` = str_remove_all(`Accession.ID`,"fasta_processed//|.csv")) %>%
     rename(Variant = scorpio_call) %>%
-    rename(`Pango lineage` = lineage) %>%
+    rename(`Pango.lineage` = lineage) %>%
     filter(!is.na(Variant)) %>%
-    select(`Accession ID`, `Pango lineage`)
+    select(`Accession.ID`, `Pango.lineage`)
   
   mx_surveillance <- read_csv("variantes_mx.csv") %>%
     filter(Variant != "") %>%
-    mutate(`Pango lineage` = if_else(`Pango lineage` == "Unassigned", NA_character_, `Pango lineage`)) %>%
+    mutate(`Pango.lineage` = if_else(`Pango.lineage` == "Unassigned", NA_character_, `Pango.lineage`)) %>%
     left_join(binded_pango, by = "Accession ID") %>%
-    mutate(`Pango lineage` = if_else(!is.na(`Pango lineage.x`), `Pango lineage.x`, `Pango lineage.y`)) %>%
-    select(-`Pango lineage.x`, -`Pango lineage.y`)
+    mutate(`Pango.lineage` = if_else(!is.na(`Pango.lineage.x`), `Pango.lineage.x`, `Pango.lineage.y`)) %>%
+    select(-`Pango.lineage.x`, -`Pango.lineage.y`)
  
   unassigned <- mx_surveillance %>%
-    filter(is.na(`Pango lineage`)) %>%
-    select(`Accession ID`) %>%
+    filter(is.na(`Pango.lineage`)) %>%
+    select(`Accession.ID`) %>%
     write_excel_csv("Unassigned.csv")
  
   attempts <- attempts - 1 
@@ -212,11 +158,11 @@ while (attempts > 0 & (nrow(unassigned) > 0 | length(list.files("fasta")) > 0)){
 
 #Re-fit
 mx_surveillance <- mx_surveillance %>%
-  mutate(`Pango lineage` = if_else(is.na(`Pango lineage`), "Unassigned", `Pango lineage`)) %>%
+  mutate(`Pango.lineage` = if_else(is.na(`Pango.lineage`), "Unassigned", `Pango.lineage`)) %>%
   mutate(Variant = if_else(str_detect(Variant, "Omicron"),
-                           paste0("Omicron ", str_sub(`Pango lineage`,1,5)), Variant)) %>%
+                           paste0("Omicron ", str_sub(`Pango.lineage`,1,5)), Variant)) %>%
   mutate(Variant = if_else(str_detect(Variant, "Omicron") &
-                             str_detect(`Pango lineage`,"Unassigned"),"Omicron (sin_asignar)",
+                             str_detect(`Pango.lineage`,"Unassigned"),"Omicron (sin_asignar)",
                            Variant)) %>%
   mutate(Variant = word(Variant, 1,2, sep = " ")) %>%
   mutate(Variant = case_when(
@@ -227,7 +173,7 @@ mx_surveillance <- mx_surveillance %>%
     str_detect(Variant, "Omicron BG|Omicron X|Omicron AY|Omicron B.1.1|Omicron BE|Omicron BF|sin_asignar") ~ "Omicron (otros)",
     TRUE ~ Variant
   )) %>%
-  mutate(Variant = if_else(str_detect(`Pango lineage`,"BA.2.75"), "Omicron BA.2.75", Variant)) %>%
+  mutate(Variant = if_else(str_detect(`Pango.lineage`,"BA.2.75"), "Omicron BA.2.75", Variant)) %>%
   filter(!is.na(Variant))
 
 #Remove from fasta and fasta processed if now they have a match
@@ -260,7 +206,7 @@ mx_surveillance %>%
   write_excel_csv("tablas/Proporcion_variantes_cdmx.csv")
 
 variantes <- unique(mx_surveillance$Variant)
-fechas    <- unique(mx_surveillance$`Collection date`)
+fechas    <- unique(mx_surveillance$Collection.date)
 
 #Función para procesamiento
 plot_state <- function(mx_surveillance, plot_name, title_name, subtitle_name = "",
@@ -479,72 +425,9 @@ if (require(ghostpdf)){
   ghostpdf::pdf_to_image("images/Regiones_variantes.pdf", output_file = "images/Regiones_variantes.png")
 }
 
-#GRÁFICA DE BARRAS
-if (!require(covidmx) & flag){
-  devtools::install_github("RodrigoZepeda/covidmx")
-  library(covidmx)
-}
-
-if (require(covidmx) & flag){
-  covid        <- descarga_datos_abiertos()
-  ambulatorios <- covid %>% casos(group_by_entidad = F,
-                                  tipo_caso    = "Sospechosos y Confirmados COVID")
-
-  ambulatorios <- ambulatorios %>%
-    filter(FECHA_SINTOMAS <= max(ambulatorios$FECHA_SINTOMAS) - 7)
-
-  ambulatorios <- ambulatorios %>%
-    mutate(SEMANA = epiweek(FECHA_SINTOMAS)) %>%
-    mutate(AÑO = year(FECHA_SINTOMAS)) %>%
-    group_by(SEMANA, AÑO) %>%
-    summarise(casos = sum(Casos_SOSPECHOSOS_Y_CONFIRMADOS_COVID)) %>%
-    ungroup()
-
-  ambulatorios <- ambulatorios %>%
-    mutate(fecha_proxy = ymd(paste0(AÑO,"/01/03")) + weeks(SEMANA))
-
-  vcount <- mx_surveillance %>%
-    mutate(Variant = if_else(str_detect(`Pango lineage`,"BA.2") & str_detect(Variant, "Omicron"), "Omicron BA.2", Variant)) %>%
-    group_by(Variant, Semana, Año) %>%
-    tally() %>%
-    ungroup() %>%
-    mutate(Variant = word(Variant, 1,2, sep = " ")) %>%
-    mutate(fecha_proxy = ymd(paste0(Año,"/01/03")) + weeks(Semana)) %>%
-    filter(fecha_proxy > ymd("2021-03-20"))
-
-  vprop <- vcount %>%
-    group_by(Semana, Año, fecha_proxy) %>%
-    summarise(Total = sum(n), .groups = "keep")
-
-  vcount <- vcount %>%
-    left_join(vprop, by = c("fecha_proxy","Semana","Año")) %>%
-    mutate(Prop = n/Total) %>%
-    filter(fecha_proxy > ymd("2021-03-20") & year(fecha_proxy) <= year(today()))
-
-  vcount <- vcount %>%
-    left_join(ambulatorios,
-              by = c("fecha_proxy", "Año" = "AÑO", "Semana" = "SEMANA"))
-
-  vcount <- vcount %>%
-    mutate(Casos_variante = casos*Prop)
-
-  ggplot(vcount) +
-    geom_col(aes(x = fecha_proxy, y = Casos_variante, fill = Variant)) +
-    theme_classic() +
-    labs(
-      y = "Casos de enfermedad respiratoria",
-      x = "Fecha",
-      title = "Casos de enfermedad respiratoria en México (2021-2022)",
-      subtitle = "Datos Abiertos COVID-19"
-    ) +
-    scale_y_continuous(labels = scales::comma) +
-    scale_x_date(date_labels = "%B-%y") +
-    scale_fill_manual("Variant", values = met.brewer("Hiroshige", 12, "continuous"))
-  ggsave("images/barplot.png", width = 8, height = 4, dpi = 750)
-} else {
-  warning("No realizamos la gráfica de barras pues no cuentas con covidmx. ¡Descárgalo!")
-}
 
 #Delete downloaded file
 file.remove(tarfiles)
 file.remove(tsv_name)
+
+cli::cli_alert_success("Procesamiento terminado")
