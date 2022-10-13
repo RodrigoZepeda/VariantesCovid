@@ -40,7 +40,7 @@ untar(fname, as.character(tsv_name))
 cli::cli_alert_info("Creando conexión a duckdb")
 con <- duckdb::dbConnect(
   drv   = duckdb::duckdb(),
-  dbdir = "datos_gisaid.duckdb",
+  dbdir = "/media/rodrigo/covid/datos_variantes.duckdb",
 )
 
 DBI::dbExecute(con, "PRAGMA memory_limit = '1GB'")
