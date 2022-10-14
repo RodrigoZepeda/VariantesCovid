@@ -30,7 +30,7 @@ if (Sys.info()["user"] == "rod"){
 tarfiles <- list.files(pattern = "variant_surveillance_tsv.*.tar", full.names = T)
 df       <- file.info(tarfiles)
 fname    <- rownames(df)[which.max(df$mtime)]
-cli::cli_alert_info("Usando el archivo {fname}")
+cli::cli_alert_info("Usando el archivo {.file {fname}}")
 
 tsv_name <- untar(fname, list = TRUE)
 tsv_name <- tsv_name[which(str_detect(tsv_name,".tsv"))]
@@ -47,7 +47,7 @@ DBI::dbExecute(con, "PRAGMA memory_limit = '1GB'")
 duckdb_read_csv(conn = con, name = "variant_surveillance", 
                 files = "variant_surveillance.tsv", sep="\t")
 
-cli::cli_alert_info("Leyendo tabla de duckdb")
+cli::cli_alert_info("Leyendo tabla de {.code duckdb}")
 variant_surveillance <- tbl(con, "variant_surveillance")
 
 #Tests if works
