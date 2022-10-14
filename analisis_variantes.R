@@ -167,6 +167,8 @@ mx_surveillance <- mx_surveillance %>%
   mutate(Variant = word(Variant, 1,2, sep = " ")) %>%
   mutate(Variant = case_when(
     str_detect(Pango.lineage, "BA.5.2.1.7|BF.7") ~ "Omicron BF.7",
+    str_detect(Pango.lineage, "BQ.1")    ~ "Omicron BQ.1 ('Typhon')",
+    str_detect(Pango.lineage, "BQ.1.1")  ~ "Omicron BQ.1.1 ('Cerberus')",
     str_detect(Pango.lineage, "XBB")     ~ "Omicron XBB",
     str_detect(Pango.lineage, "BA.5")    ~ "Omicron BA.5",
     str_detect(Pango.lineage, "BA.2.75") ~ "Omicron BA.2.75",
