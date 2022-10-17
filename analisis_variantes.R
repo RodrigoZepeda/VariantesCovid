@@ -95,6 +95,7 @@ mx_surveillance <- read_csv("variantes_mx.csv", show_col_types = F) %>%
 #Creamos la base de datos de los id para descargar y buscarles su linaje
 unassigned <- mx_surveillance %>%
   filter(is.na(`Pango.lineage`)) %>%
+  filter(str_detect(`Accession.ID`, "EPI_ISL")) %>%
   select(`Accession.ID`) %>%
   write_excel_csv("Unassigned.csv")
 
