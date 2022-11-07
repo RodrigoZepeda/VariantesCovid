@@ -22,14 +22,10 @@
 
 ### Sur 
 
-![Variantes a en región del sur](images/Variantes_SUR.png)
-
-### Sur 
-
 ![Variantes a en región del centro](images/Variantes_SUR.png)
 
 ## Descripción 
-Publicación diaria de las variantes en México usando datos de [GISAID](https://www.gisaid.org/).
+Publicación diaria (automatizada) de las variantes en México usando datos de [GISAID](https://www.gisaid.org/).
 + Tablas en la carpeta `tablas`
 + Gráficas en la carpeta `images`
 
@@ -40,8 +36,8 @@ Publicación diaria de las variantes en México usando datos de [GISAID](https:/
 Para analizar en `R` los datos más actuales de esta publicación instala el paquete [`covidmx`](https://github.com/RodrigoZepeda/covidmx):
 
 ```{r}
-#remotes::install_github("RodrigoZepeda/covidmx")
-variantes <- covidmx::descarga_datos_variantes_GISAID()
+library(covidmx)
+variantes <- descarga_datos_variantes_GISAID()
 ```
 
 > **Nota** Si usas los datos del paquete debes citar a GISAID (ver referencias) así como el paquete [`covidmx`](https://github.com/RodrigoZepeda/covidmx). 
@@ -55,7 +51,7 @@ Alternativamente puedes usar el scrapper `download_gisaid.py` con tu password y 
 
 ## Automatización
 
-Para Linux puedes usar `crontab` para automatizar la descarga de la base de datos. Por ahora necesitas `mariadb` para que `R` los transforme. Sugerencia: 
+Para Linux puedes usar `crontab` para automatizar la descarga de la base de datos. Sugerencia: 
 
 1. Crea tu crontab parecido a este:
 
@@ -76,14 +72,7 @@ usuario
 password
 ```
 
-3. Crea tu base en `mariadb` que se llame `COVID` y dale el acceso a tu usuario. Para poner tu usuario exporta las variables en tu `.bash_profile` 
-
-```{bash}
-export MariaDB_user="usuario"
-export MariaDB_password="password"
-```
-
-4. Cambia los paths en el `orchestrate.sh` y vulélvelo ejecutable con `chmod +x orchestrate.sh`.
+3. Cambia los paths en el `orchestrate.sh` y vulélvelo ejecutable con `chmod +x orchestrate.sh`.
 
 ## Funcionamiento
 
