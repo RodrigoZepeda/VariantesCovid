@@ -177,6 +177,7 @@ mx_surveillance <- mx_surveillance %>%
     str_detect(Pango.lineage, "BA.1")    ~ "Omicron BA.1",
     str_detect(Pango.lineage, "BA.4")    ~ "Omicron BA.4",
     str_detect(Pango.lineage, "BN.1")    ~ "Omicron BN.1",
+    str_detect(Pango.lineage, "BW.1")    ~ "Omicron BW.1",
     str_detect(Variant, "Omicron BG|Omicron X|Omicron AY|Omicron B.1.1|Omicron BE|Omicron|Omicron BF|sin_asignar") ~ "Omicron (otros)",
     TRUE ~ Variant
   )) %>%
@@ -212,7 +213,13 @@ mx_surveillance %>%
   write_excel_csv("tablas/Proporcion_variantes_cdmx.csv")
 
 mx_surveillance <- mx_surveillance %>%
-  mutate(fecha_proxy = ymd(paste0(Año,"/01/03")) + weeks(Semana)) %>%
+  left_join(
+    tibble(fecha_proxy = seq(ymd("2020/01/01"), today(), by = "1 day")) |>
+      mutate(Semana = epiweek(fecha_proxy)) |>
+      mutate(Año = epiyear(fecha_proxy)) |>
+      distinct(Semana, Año, .keep_all = TRUE),
+    by = c("Semana","Año")
+  ) |>
   filter(fecha_proxy > today() - years(1))
 
 variantes <- unique(mx_surveillance$Variant)
@@ -223,17 +230,14 @@ plot_state <- function(mx_surveillance, plot_name, title_name, subtitle_name = "
                        variantes = variantes, fechas = fechas){
 
   vcount <- mx_surveillance %>%
-    group_by(Variant, Semana, Año) %>%
+    group_by(Variant, Semana, Año, fecha_proxy) %>%
     tally() %>%
     ungroup() %>%
-    mutate(fecha_proxy = ymd(paste0(Año,"/01/03")) + weeks(Semana)) %>%
-    filter(fecha_proxy > ymd("2021-03-20")) %>%
-    mutate(fecha_proxy = if_else(year(fecha_proxy) > Año, fecha_proxy - years(1),
-                                 fecha_proxy)) 
-
+    filter(fecha_proxy > ymd("2021-03-20")) 
+  
   vprop <- vcount %>%
     group_by(Semana, Año, fecha_proxy) %>%
-    summarise(Total = sum(n), .groups = "keep")
+    summarise(Total = sum(n), .groups = "drop")
 
   maxcount        <- -Inf
   semana_reciente <- today() + 1
@@ -251,7 +255,7 @@ plot_state <- function(mx_surveillance, plot_name, title_name, subtitle_name = "
   vcount <- vcount %>%
     left_join(vprop, by = c("fecha_proxy","Semana","Año")) %>%
     mutate(Prop = n/Total) %>%
-    filter(fecha_proxy > ymd("2021-03-20") & year(fecha_proxy) <= year(today()))
+    filter(fecha_proxy <= today())
 
   #Distribución actual
   dactual            <- vcount %>%
@@ -270,13 +274,13 @@ plot_state <- function(mx_surveillance, plot_name, title_name, subtitle_name = "
   names(colores) <- sort(variantes)
   Sys.setlocale("LC_ALL",'es_MX.UTF-8')
   
-  vcount2 <- vcount %>% 
-    filter(fecha_proxy == max(fecha_proxy)) %>%
-    mutate(fecha_proxy = fecha_proxy + weeks(1)) %>%
-    bind_rows(vcount)
+  # vcount2 <- vcount %>% 
+  #   filter(fecha_proxy == max(fecha_proxy)) %>%
+  #   mutate(fecha_proxy = fecha_proxy + weeks(1)) %>%
+  #   bind_rows(vcount)
   
-  variantplot <- ggplot(vcount2) +
-    geom_stream(aes(x = fecha_proxy, y = n, fill = Variant), type = "proportional", alpha = 1,
+  variantplot <- ggplot(vcount) +
+    geom_stream(aes(x = fecha_proxy, y = Prop, fill = Variant), type = "proportional", alpha = 1,
                 bw = 0.75) +
     labs(
       x = "",
