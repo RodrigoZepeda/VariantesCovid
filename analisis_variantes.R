@@ -9,6 +9,12 @@ pacman::p_load(tidyverse, lubridate, ggstream, MetBrewer, ggtext, latexpdf, cowp
 
 flag     <- FALSE
 attempts <- 10 #Intentos de descarga
+dbdir    <- "/media/rodrigo/covid/datos_variantes.duckdb"
+
+#Removemos los datos para no sobreescribirlos
+if (file.exists(dbdir)){
+  file.remove(dbdir)
+}
 
 #Environment de conda
 #Install pangolin in a different conda env as the other GISAID stuff is incompatible
@@ -40,7 +46,7 @@ untar(fname, as.character(tsv_name))
 cli::cli_alert_info("Creando conexión a duckdb")
 con <- duckdb::dbConnect(
   drv   = duckdb::duckdb(),
-  dbdir = "/media/rodrigo/covid/datos_variantes.duckdb",
+  dbdir = dbdir,
 )
 
 DBI::dbExecute(con, "PRAGMA memory_limit = '1GB'")
