@@ -151,7 +151,7 @@ while (attempts > 0 & (nrow(unassigned) > 0 | length(list.files("fasta")) > 0)){
   mx_surveillance <- read_csv("variantes_mx.csv") %>%
     filter(Variant != "") %>%
     mutate(`Pango.lineage` = if_else(`Pango.lineage` == "Unassigned", NA_character_, `Pango.lineage`)) %>%
-    left_join(binded_pango, by = "Accession ID") %>%
+    left_join(binded_pango, by = "Accession.ID") %>%
     mutate(`Pango.lineage` = if_else(!is.na(`Pango.lineage.x`), `Pango.lineage.x`, `Pango.lineage.y`)) %>%
     select(-`Pango.lineage.x`, -`Pango.lineage.y`)
  
@@ -321,18 +321,18 @@ plot_state <- function(mx_surveillance, plot_name, title_name, subtitle_name = "
   return(variantplot)
 }
 
-#------------------------------------------------------------------------
-#                                GRAFICAS
-#------------------------------------------------------------------------
+#________________________________________________________________________
+#                       -----GRAFICAS-----
+#________________________________________________________________________
 
-#NACIONAL
-#------------------------------------------------------------------------
+#> NACIONAL----
+#________________________________________________________________________
 nacional <- plot_state(mx_surveillance, "images/Variantes_Nacional.png",
            "Variantes de <span style='color:#006400'>SARS-CoV-2</span> en México",
            "_Proporción de variantes a nivel nacional_", variantes =  variantes, fechas)
 
-#CIUDAD DE MÉXICO
-#------------------------------------------------------------------------
+#> CIUDAD DE MÉXICO----
+#________________________________________________________________________
 cdmx <- mx_surveillance %>%
   filter(str_detect(Location,
                     paste0("Mexico City|CDMX|CMX|Distrito Federal",
@@ -341,8 +341,8 @@ cdmx <- mx_surveillance %>%
              "Variantes de <span style='color:#006400'>SARS-CoV-2</span> en Región CDMX",
              "_Proporción de variantes en Ciudad de México_", variantes = variantes)
 
-#NORTE
-#------------------------------------------------------------------------
+#> NORTE----
+#________________________________________________________________________
 norte <- mx_surveillance %>%
   filter(str_detect(Location,
                     paste0("Baja California|Baja California Sur|Chihuahua|",
@@ -354,8 +354,8 @@ norte <- mx_surveillance %>%
              "Variantes de <span style='color:#006400'>SARS-CoV-2</span> en Región Norte",
              "_Proporción de variantes en BC, BCS, CHIH, COAH, SIN, SON, DGO, NL, TAM_", variantes)
 
-#CENTRO
-#------------------------------------------------------------------------
+#> CENTRO----
+#________________________________________________________________________
 centro <- mx_surveillance %>%
   filter(str_detect(Location,
                     paste0("Aguascalientes|Guanajuato|Querétaro|Queretaro|",
@@ -369,8 +369,8 @@ centro <- mx_surveillance %>%
              "Variantes de <span style='color:#006400'>SARS-CoV-2</span> en Región Centro",
              "_Proporción de variantes en AGS, GRO, QRO, ZAC, SLP, CDMX, EDOMEX, MOR_", variantes)
 
-#SUR
-#------------------------------------------------------------------------
+#> SUR----
+#________________________________________________________________________
 sur <- mx_surveillance %>%
   filter(str_detect(Location,
                     paste0("Chiapas|Guerrero|Guerero|Oaxaca|Mérida|Campeche|",
@@ -379,8 +379,8 @@ sur <- mx_surveillance %>%
              "Variantes de <span style='color:#006400'>SARS-CoV-2</span> en Región Sur",
              "_Proporción de variantes en  CHIS, GUE, OAX, QROO, CAM, TAB, YUC_", variantes)
 
-#ORTIENTE + OESTE
-#------------------------------------------------------------------------
+#> ORTIENTE + OESTE----
+#________________________________________________________________________
 oriente_oeste <- mx_surveillance %>%
   filter(str_detect(Location,
                     paste0("Colima|Jalisco|Michoacan|Michoacán|Nayarit|",

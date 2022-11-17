@@ -82,7 +82,7 @@ if variantes.shape[0] > 0:
 
     input_search = browser.find_element_by_xpath("/html/body/form/div[5]/div/div[2]/div/div[2]/div[1]/div/table/tbody/tr[2]/td[2]/div[1]/div/div[1]/input")
 
-    for variante in variantes["Accession ID"]:
+    for variante in variantes["Accession.ID"]:
         input_search.send_keys(variante)
         time.sleep(uniform(10, 20))
 
