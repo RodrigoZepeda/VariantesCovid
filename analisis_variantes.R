@@ -315,8 +315,8 @@ plot_state <- function(mx_surveillance, plot_name, title_name, subtitle_name = "
           plot.caption = element_markdown(),
           axis.line = element_blank(),
           axis.line.y.left = element_line()) 
-  ggsave(plot_name, variantplot, width = 10, height = 6, dpi = 750, bg = "white")
-  ggsave(str_replace_all(plot_name,".png",".pdf"), variantplot, width = 10, height = 6, dpi = 750, bg = "white")
+  ggsave(plot_name, variantplot, width = 11, height = 6, dpi = 750, bg = "white")
+  ggsave(str_replace_all(plot_name,".png",".pdf"), variantplot, width = 11, height = 6, dpi = 750, bg = "white")
 
   return(variantplot)
 }
