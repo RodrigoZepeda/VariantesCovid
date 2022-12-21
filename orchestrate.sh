@@ -4,11 +4,10 @@
 #Author: Rodrigo Zepeda
 #Contact: rzepeda17[at]gmail.com
 #----------------------------------------
-. ~/.keychain/`/bin/hostname`-sh
-cd /home/rodrigo/VariantesCovid
+cd /home/rod/VariantesCovid
 date=$(date '+%Y-%m-%d')
-/home/rodrigo/miniconda3/envs/GISAID/bin/python3 /home/rodrigo/VariantesCovid/download_gisaid.py
-/usr/bin/R < /home/rodrigo/VariantesCovid/analisis_variantes.R --no-save
-/usr/bin/git -C /home/rodrigo/VariantesCovid add .
-/usr/bin/git -C /home/rodrigo/VariantesCovid commit -m "Actualización ${date}"
-/usr/bin/git -C /home/rodrigo/VariantesCovid push origin main
+/home/rod/miniconda3/envs/GISAID/bin/python3 /home/rod/VariantesCovid/download_gisaid.py
+/usr/bin/R < /home/rod/VariantesCovid/analisis_variantes.R --no-save
+/usr/bin/git -C /home/rod/VariantesCovid add .
+/usr/bin/git -C /home/rod/VariantesCovid commit -m "Actualización ${date}"
+/usr/bin/git -C /home/rod/VariantesCovid push origin main
