@@ -9,7 +9,7 @@ pacman::p_load(tidyverse, lubridate, ggstream, MetBrewer, ggtext, latexpdf, cowp
 
 flag     <- FALSE
 attempts <- 10 #Intentos de descarga
-dbdir    <- "/media/rodrigo/covid/datos_variantes.duckdb"
+dbdir    <- "datos_variantes.duckdb"
 
 #Removemos los datos para no sobreescribirlos
 if (file.exists(dbdir)){
@@ -18,12 +18,12 @@ if (file.exists(dbdir)){
 
 #Environment de conda
 #Install pangolin in a different conda env as the other GISAID stuff is incompatible
-if (Sys.info()["user"] == "rod"){
+if (Sys.info()["user"] == "rod" && Sys.info()["sysname"] == "Darwin"){
   conda_path <- "/usr/local/Caskroom/miniconda/base/envs/GISAID/bin/python3"
   conda_path_pango <- "/usr/local/Caskroom/miniconda/base/envs/pangolin/bin/python3"
-} else if (Sys.info()["user"] == "rodrigo") {
-  conda_path       <- "/home/rodrigo/miniconda3/envs/GISAID/bin/python3"
-  conda_path_pango <- "/home/rodrigo/miniconda3/envs/pangolin/bin/python3"
+} else if (Sys.info()["user"] == "rod" & Sys.info()["sysname"] == "Linux") {
+  conda_path       <- "/home/rod/miniconda3/envs/GISAID/bin/python3"
+  conda_path_pango <- "/home/rod/miniconda3/envs/pangolin/bin/python3"
 } else {
   conda_path <- conda_list(conda = "auto")[1,2]
   conda_path_pango <- conda_path
@@ -80,16 +80,20 @@ mx_surveillance %>%
 dbDisconnect(con)
 
 #Agregamos los que no tienen PANGO pero ya calculamos
-recovered_pango <- read_csv("Pango_recovered.csv", show_col_types = FALSE) 
+if (file.exists("Pango_recovered.csv")){
+  recovered_pango <- read_csv("Pango_recovered.csv", show_col_types = FALSE) 
+} else {
+  recovered_pango <- tibble(index = NA_character_, scorpio_call = NA_character_, lineage = NA_character_, variant = NA_character_)
+}
 
 binded_pango <- recovered_pango %>%
-  rename(`Accession.ID` = index) %>%
-  mutate(`Accession.ID` = str_remove_all(`Accession.ID`,"fasta_processed//|.csv")) %>%
-  rename(Variant = scorpio_call) %>%
-  rename(`Pango.lineage` = lineage) %>%
-  filter(!is.na(Variant)) %>%
-  select(`Accession.ID`, `Pango.lineage`)
-  
+    rename(`Accession.ID` = index) %>%
+    mutate(`Accession.ID` = str_remove_all(`Accession.ID`,"fasta_processed//|.csv")) %>%
+    rename(Variant = scorpio_call) %>%
+    rename(`Pango.lineage` = lineage) %>%
+    filter(!is.na(Variant)) %>%
+    select(`Accession.ID`, `Pango.lineage`)
+
 mx_surveillance <- read_csv("variantes_mx.csv", show_col_types = F) %>%
   filter(Variant != "") %>%
   mutate(`Pango.lineage` = if_else(`Pango.lineage` == "Unassigned", NA_character_, `Pango.lineage`)) %>%
