@@ -1,0 +1,6 @@
+name: pangolin
+channels:
+  - defaults
+dependencies:
+  - pangolin
+prefix: /home/rod/miniconda3/envs/pangolin
