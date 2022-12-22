@@ -5,7 +5,7 @@ rm(list = ls())
 
 #remotes::install_github("covidmx")
 pacman::p_load(tidyverse, lubridate, ggstream, MetBrewer, ggtext, latexpdf, cowplot, 
-               DBI, duckdb, glue, reticulate, covidmx, cli)
+               DBI, duckdb, glue, reticulate, covidmx, cli, janitor)
 
 flag     <- FALSE
 attempts <- 10 #Intentos de descarga
@@ -119,7 +119,7 @@ while (attempts > 0 & (nrow(unassigned) > 0 | length(list.files("fasta")) > 0)){
   #Process the downloaded FASTA files
   fastas <- list.files("fasta", pattern = "EPI.*fasta")
   if (length(fastas) > 0){
-    system2("bash", "get_pangolin.sh")
+    system2("bash","get_pangolin.sh")
   }
   
   #Now read the processed fasta files and delete from 'fasta' and move to `Pango_recovered.csv`
