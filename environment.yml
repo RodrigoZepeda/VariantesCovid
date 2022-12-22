@@ -1,12 +1,10 @@
 name: GISAID
 channels:
   - defaults
-  - conda-forge
-  - bioconda
 dependencies:
   - python=3.9
   - keyring
   - selenium
   - pandas
   - pangolin
-prefix: /home/rodrigo/miniconda3/envs/GISAID
+prefix: /home/rod/miniconda3/envs/GISAID

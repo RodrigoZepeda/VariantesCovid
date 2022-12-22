@@ -6,7 +6,7 @@ conda activate pangolin
 for varname in $(ls fasta)
 do
     idname=${varname%.*}
-    /home/rod/miniconda3/bin/pangolin --threads 4 --outfile "fasta_processed/$idname.csv" fasta/$varname
+    pangolin --threads 4 --outfile "fasta_processed/$idname.csv" fasta/$varname
 done
 conda deactivate
 
