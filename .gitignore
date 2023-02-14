@@ -10,6 +10,8 @@ fasta/
 *.duckdb
 *.duckdb.tmp
 *.duckdb.wal
+*.crdownload
+variant_surveillance_tsv_*
 
 # User-specific stuff
 .idea/
