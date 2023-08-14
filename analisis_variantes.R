@@ -172,27 +172,42 @@ mx_surveillance <- mx_surveillance %>%
   mutate(`Pango.lineage` = if_else(is.na(`Pango.lineage`), "Unassigned", `Pango.lineage`)) %>%
   mutate(Variant = if_else(str_detect(Variant, "Omicron"),
                            paste0("Omicron ", str_sub(`Pango.lineage`,1,5)), Variant)) %>%
+  mutate(Variant = str_remove_all(Variant,"Former VOI |Former VOC ")) |>
+  mutate(Variant = word(Variant, 1,2, sep = " ")) %>%
   mutate(Variant = if_else(str_detect(Variant, "Omicron") &
                              str_detect(`Pango.lineage`,"Unassigned"),"Omicron (sin_asignar)",
                            Variant)) %>%
-  mutate(Variant = word(Variant, 1,2, sep = " ")) %>%
   mutate(Variant = case_when(
-    str_detect(Pango.lineage, "BA.5.2.1.7|BF.7") ~ "Omicron BF.7",
-    str_detect(Pango.lineage, "BQ.1.1")  ~ "Omicron BQ.1.1 ('Cerberus')",
-    str_detect(Pango.lineage, "BQ.1")    ~ "Omicron BQ.1 ('Typhon')",
-    str_detect(Pango.lineage, "XBB")     ~ "Omicron XBB",
-    str_detect(Pango.lineage, "BA.5")    ~ "Omicron BA.5",
-    str_detect(Pango.lineage, "BA.2.75") ~ "Omicron BA.2.75",
-    str_detect(Pango.lineage, "BA.2")    ~ "Omicron BA.2",
-    str_detect(Pango.lineage, "BA.1")    ~ "Omicron BA.1",
-    str_detect(Pango.lineage, "BA.4")    ~ "Omicron BA.4",
-    str_detect(Pango.lineage, "BN.1")    ~ "Omicron BN.1",
-    str_detect(Pango.lineage, "BW.1")    ~ "Omicron BW.1",
-    str_detect(Variant, "Omicron BG|Omicron X|Omicron AY|Omicron B.1.1|Omicron BE|Omicron|Omicron BF|sin_asignar") ~ "Omicron (otros)",
+    str_detect(Pango.lineage, "BA.5.2.1.7|BF.7") ~ "BF.7",
+    str_detect(Variant, "BQ.1.1")  ~ "BQ.1.1 ('Cerberus')",
+    str_detect(Pango.lineage, "BQ.1.1")  ~ "BQ.1.1 ('Cerberus')",
+    str_detect(Pango.lineage, "BQ.1")    ~ "BQ.1 ('Typhon')",
+    str_detect(Variant, "XBB.1.5")     ~ "XBB.1.5",
+    str_detect(Pango.lineage, "XBB.1.5")     ~ "XBB.1.5",
+    str_detect(Variant, "XBB.1.16")     ~ "XBB.1.16",
+    str_detect(Pango.lineage, "XBB.1.16")     ~ "XBB.1.16",
+    str_detect(Pango.lineage, "VUM GRA")     ~ "XBB.1.16",
+    str_detect(Pango.lineage, "VOI GRA")     ~ "XBB.1.5",
+    str_detect(Variant, "XBB+|XBB.1.9|XBB.2.3")     ~ "XBB",
+    str_detect(Pango.lineage, "XBB")     ~ "XBB",
+    str_detect(Pango.lineage, "BA.5")    ~ "BA.5",
+    str_detect(Variant, "BA.2.75") ~ "BA.2.75",
+    str_detect(Pango.lineage, "BA.2.75") ~ "BA.2.75",
+    str_detect(Pango.lineage, "BA.2")    ~ "BA.2",
+    str_detect(Pango.lineage, "BA.1")    ~ "BA.1",
+    str_detect(Pango.lineage, "BA.4")    ~ "BA.4",
+    str_detect(Pango.lineage, "BN.1")    ~ "BN.1",
+    str_detect(Pango.lineage, "BW.1")    ~ "BW.1",
+    str_detect(Variant, "CH.1.1")     ~ "CH.1.1",
+    str_detect(Variant, "EG.5")     ~ "EG.5",
+    str_detect(Pango.lineage, "EG.5")     ~ "EG.5",
+    str_detect(Variant, "VUM GRA")     ~ "Otros",
+    str_detect(Variant, "VOI GRA")     ~ "Otros",
+    str_detect(Variant, "Omicron BG|Omicron X|Omicron AY|Omicron B.1.1|Omicron BE|Omicron|Omicron BF|sin_asignar") ~ "Otros",
     TRUE ~ Variant
   )) %>%
   filter(!is.na(Variant))
-
+  
 #Remove from fasta and fasta processed if now they have a match
 
 #Datos para publicar
