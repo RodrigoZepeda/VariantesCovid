@@ -182,6 +182,8 @@ mx_surveillance <- mx_surveillance %>%
     str_detect(Variant, "BQ.1.1")  ~ "BQ.1.1 ('Cerberus')",
     str_detect(Pango.lineage, "BQ.1.1")  ~ "BQ.1.1 ('Cerberus')",
     str_detect(Pango.lineage, "BQ.1")    ~ "BQ.1 ('Typhon')",
+    str_detect(Variant, "BA.2.86")     ~ "BA.2.86",
+    str_detect(Pango.lineage, "BA.2.86")     ~ "BA.2.86",
     str_detect(Variant, "XBB.1.5")     ~ "XBB.1.5",
     str_detect(Pango.lineage, "XBB.1.5")     ~ "XBB.1.5",
     str_detect(Variant, "XBB.1.16")     ~ "XBB.1.16",
