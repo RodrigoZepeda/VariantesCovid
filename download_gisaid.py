@@ -18,7 +18,6 @@ def latest_download_file():
 
     return newest
 
-
 #Folder de descarga y chromedriver segun linux u osx
 folder_of_download     = os.getcwd()
 if platform == "linux" or platform == "linux2":
@@ -49,6 +48,7 @@ option.add_argument("-incognito")
 
 option.add_experimental_option("prefs", {
     "download.default_directory": folder_of_download,
+    "savefile.default_directory": folder_of_download,
     "download.prompt_for_download": False,
     "download.directory_upgrade": True,
     "safebrowsing_for_trusted_sources_enabled": False,
