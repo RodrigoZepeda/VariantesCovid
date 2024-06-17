@@ -70,7 +70,7 @@ mx_surveillance <- variant_surveillance %>%
   filter(str_detect(Location, "Mexico")) %>%
   filter(!str_detect(Location, "New Mexico")) %>%
   filter(`Is.complete.` == "True") %>%
-  mutate(across(everything(), ~ str_remove_all(., "\\0"))) %>%
+  #mutate(across(everything(), ~ str_remove_all(., "\\0"))) %>%
   collect() %>%
   mutate(Collection.date = ymd(Collection.date)) %>%
   filter(Collection.date <= today()) %>%
@@ -146,7 +146,6 @@ while (attempts > 0 & (nrow(unassigned) > 0 | length(list.files("fasta")) > 0)) 
     }
   }
 
-
   binded_pango <- recovered_pango %>%
     rename(`Accession.ID` = index) %>%
     mutate(`Accession.ID` = str_remove_all(`Accession.ID`, "fasta_processed//|.csv")) %>%
@@ -183,6 +182,12 @@ mx_surveillance <- mx_surveillance %>%
   Variant
   )) %>%
   mutate(Variant = case_when(
+    str_detect(Pango.lineage, "JN.1") ~ "JN.1/JN.1.*",
+    str_detect(Pango.lineage, "KP.3") ~ "KP.3",
+    str_detect(Pango.lineage, "KP.2") ~ "KP.2",
+    str_detect(Pango.lineage, "LB.1") ~ "LB.1",
+    str_detect(Pango.lineage, "KS.1") ~ "KS.1",
+    str_detect(Pango.lineage, "QK.1") ~ "QK.1",
     str_detect(Pango.lineage, "BA.5.2.1.7|BF.7") ~ "BF.7",
     str_detect(Variant, "BQ.1.1") ~ "BQ.1.1 ('Cerberus')",
     str_detect(Pango.lineage, "BQ.1.1") ~ "BQ.1.1 ('Cerberus')",
@@ -202,6 +207,16 @@ mx_surveillance <- mx_surveillance %>%
     str_detect(Pango.lineage, "BA.2.75") ~ "BA.2.75",
     str_detect(Pango.lineage, "BA.2") ~ "BA.2",
     str_detect(Pango.lineage, "BA.1") ~ "BA.1",
+    str_detect(Pango.lineage, "FU.2") ~ "FU.2",
+    str_detect(Pango.lineage, "HY.1") ~ "HY.1",
+    str_detect(Pango.lineage, "GD.1") ~ "GD.1",
+    str_detect(Pango.lineage, "HP.1.1") ~ "HP.1.1",
+    str_detect(Pango.lineage, "FL.1.5.1") ~ "FL.1.5.1",
+    str_detect(Pango.lineage, "HS.1") ~ "HS.1",
+    str_detect(Pango.lineage, "HV.1") ~ "HV.1",
+    str_detect(Pango.lineage, "JF.1") ~ "JF.1",
+    str_detect(Pango.lineage, "JG.3") ~ "JG.3",
+    str_detect(Pango.lineage, "HZ.1") ~ "HZ.1",
     str_detect(Pango.lineage, "BA.4") ~ "BA.4",
     str_detect(Pango.lineage, "BN.1") ~ "BN.1",
     str_detect(Pango.lineage, "BW.1") ~ "BW.1",
@@ -214,8 +229,6 @@ mx_surveillance <- mx_surveillance %>%
     TRUE ~ Variant
   )) %>%
   filter(!is.na(Variant))
-
-# Remove from fasta and fasta processed if now they have a match
 
 # Datos para publicar
 mx_surveillance %>%
@@ -341,9 +354,9 @@ plot_state <- function(mx_surveillance, plot_name, title_name, subtitle_name = "
         variantes_actuales
       )
     ) +
-    scale_x_date(date_labels = "%B %y", date_breaks = "1 month", expand = c(0, 0)) +
+    scale_x_date(date_labels = "%b-%y", date_breaks = "1 month", expand = c(0, 0)) +
     scale_y_continuous(labels = scales::percent, expand = c(0, 0)) +
-    scale_fill_manual("Variante/Subvariante", values = colores) +
+    scale_fill_manual("", values = colores) +
     theme(
       panel.background = element_rect(fill = "white"),
       plot.background = element_rect(fill = "white", color = "white"),
@@ -355,7 +368,8 @@ plot_state <- function(mx_surveillance, plot_name, title_name, subtitle_name = "
       plot.caption = element_markdown(),
       axis.line = element_blank(),
       axis.line.y.left = element_line()
-    )
+    ) +
+    guides(fill=guide_legend(ncol=8))
   ggsave(plot_name, variantplot, width = 11, height = 6, dpi = 750, bg = "white")
   ggsave(str_replace_all(plot_name, ".png", ".pdf"), variantplot, width = 11, height = 6, dpi = 750, bg = "white")
 

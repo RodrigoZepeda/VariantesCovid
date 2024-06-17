@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import pandas as pd
 import os
 from selenium import webdriver
-from selenium.webdriver.support.select import Select
 import time
 from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.common.by import By
 from sys import platform
 
 print("Running python")
@@ -26,7 +26,7 @@ else:
     direccion_chromedriver = '/usr/local/bin/chromedriver'
 
 #Tiempo de espera
-sleep_time = 15
+sleep_time = 10
 
 #Usuario y password en txt
 a_file = open("gisaid_user_password.txt")
@@ -36,15 +36,12 @@ usuario = str.rsplit(usuario)[0]
 
 print("Opening GISAID")
 
-# Set your password once doing and using your USERNAME and PASSWORD for GISAID
-#keyring.set_password("GISAID_Download", MAGIC_USERNAME_KEY, "USERNAME")
-#keyring.set_password("GISAID_Download", "USERNAME", "PASSWORD")
-# and then DELETE the section
-
 
 option = webdriver.ChromeOptions()
 option.add_argument('--disable-gpu')
-option.add_argument("-incognito")
+option.add_argument("--disable-notifications")
+#option.add_argument("-incognito") #There is a bug in 2024 that shows a bubble here
+#option.add_argument("disable-features=DownloadBubble,DownloadBubbleV2")
 
 option.add_experimental_option("prefs", {
     "download.default_directory": folder_of_download,
@@ -52,45 +49,50 @@ option.add_experimental_option("prefs", {
     "download.prompt_for_download": False,
     "download.directory_upgrade": True,
     "safebrowsing_for_trusted_sources_enabled": False,
-    "safebrowsing.enabled": False
+    "safebrowsing.enabled": False,
+    "profile.default_content_settings.popups": 0,
 })
 
 #Click on login
 print("Opening chrome")
-browser = webdriver.Chrome(executable_path=direccion_chromedriver, options=option)
+service = Service(executable_path=direccion_chromedriver)
+browser = webdriver.Chrome(service=service, options=option)
 browser.set_window_size(2000,1000)
 browser.get("https://www.epicov.org/epi3/start")
-#browser.find_element_by_class_name("Login").click()
 time.sleep(sleep_time)
 
 #Login with password
-browser.find_element_by_id("elogin").send_keys(usuario)
-browser.find_element_by_id("epassword").send_keys(password + Keys.RETURN)
+browser.find_element(By.ID, "elogin").send_keys(usuario)
+browser.find_element(By.ID, "epassword").send_keys(password + Keys.RETURN)
 time.sleep(sleep_time)
 
 #Click download
 #browser.back() #update to remove publicity
 #time.sleep(sleep_time)
 
-browser.find_element_by_xpath("/html/body/form/div[5]/div/div[2]/div/div[1]/div/div/div[5]").click()
+browser.find_element(By.XPATH, "/html/body/form/div[5]/div/div[2]/div/div[1]/div/div/div[5]").click()
 time.sleep(sleep_time)
 
 #Open new frame
-frame = browser.find_element_by_tag_name('iframe')
+frame = browser.find_element(By.TAG_NAME, 'iframe')
 browser.switch_to.frame(frame)
 time.sleep(sleep_time)
 
-text_variant = browser.find_element_by_xpath("//*[contains(text(), 'Variant surveillance')]").click()
+#Go to variant surveillance
+text_variant = browser.find_element(By.XPATH, "//*[contains(text(), 'Variant surveillance')]").click()
 time.sleep(sleep_time)
 
-confirmation_frame = browser.find_element_by_tag_name('iframe')
+#Go to the new frame
+confirmation_frame = browser.find_element(By.TAG_NAME, 'iframe')
 browser.switch_to.frame(confirmation_frame)
 time.sleep(sleep_time)
 
-
-browser.find_element_by_xpath('/html/body/form/div[5]/div/div[2]/div[1]/div/table/tbody/tr/td[2]/table/tbody/tr/td/div/div[1]/div/input').click()
+#Click on terms and conditions
+browser.find_element(By.XPATH, '/html/body/form/div[5]/div/div[2]/div[1]/div/table/tbody/tr/td[2]/table/tbody/tr/td/div/div[1]/div/input').click()
 time.sleep(sleep_time)
-browser.find_element_by_xpath('/html/body/form/div[5]/div/div[2]/div[2]/div/div[2]/div/button').click()
+
+#Click to download
+browser.find_element(By.XPATH, '/html/body/form/div[5]/div/div[2]/div[2]/div/div[2]/div/button').click()
 
 fileends = "crdownload"
 
@@ -103,4 +105,4 @@ while "crdownload" == fileends:
     else:
         fileends = "none"
 
-browser.close()
+#browser.close()
