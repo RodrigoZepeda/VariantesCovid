@@ -6,7 +6,7 @@
 #----------------------------------------
 #FROM https://stackoverflow.com/questions/55966634/unable-to-run-git-commands-with-crontab
 eval `ssh-agent -s` && ssh-add ~/.ssh/github && ssh-add -l
-cd /home/rod/VariantesCovid
+cd /Users/rodrigozepedatello/Documents/VariantesCovid
 date=$(date '+%Y-%m-%d')
 /usr/local/Caskroom/miniconda/base/envs/GISAID/bin/python3 /Users/rodrigozepedatello/Documents/VariantesCovid/download_gisaid.py
 /usr/local/bin/R < /Users/rodrigozepedatello/Documents/VariantesCovid/analisis_variantes.R --no-save
