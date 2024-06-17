@@ -1,12 +1,12 @@
 #!/bin/bash
 #Se encarga de procesar con pangolin
 #https://stackoverflow.com/questions/34534513/calling-conda-source-activate-from-bash-script
-eval "$(/home/rod/miniconda3/bin/conda shell.bash hook)"
-conda activate pangolin
+eval "$(/usr/local/Caskroom/miniconda/base/condabin/mamba shell.bash hook)"
+mamba activate pangolin
 for varname in $(ls fasta)
 do
     idname=${varname%.*}
     pangolin --threads 4 --outfile "fasta_processed/$idname.csv" fasta/$varname
 done
-conda deactivate
+mamba deactivate
 

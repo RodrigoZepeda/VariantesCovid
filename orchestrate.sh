@@ -8,8 +8,8 @@
 eval `ssh-agent -s` && ssh-add ~/.ssh/github && ssh-add -l
 cd /home/rod/VariantesCovid
 date=$(date '+%Y-%m-%d')
-/home/rod/miniconda3/envs/GISAID/bin/python3 /home/rod/VariantesCovid/download_gisaid.py
-/usr/bin/R < /home/rod/VariantesCovid/analisis_variantes.R --no-save
-/usr/bin/git -C /home/rod/VariantesCovid add .
-/usr/bin/git -C /home/rod/VariantesCovid commit -m "Actualización ${date}"
-/usr/bin/git -C /home/rod/VariantesCovid push origin main
+/usr/local/Caskroom/miniconda/base/envs/GISAID/bin/python3 /Users/rodrigozepedatello/Documents/VariantesCovid/download_gisaid.py
+/usr/local/bin/R < /Users/rodrigozepedatello/Documents/VariantesCovid/analisis_variantes.R --no-save
+/usr/local/bin/git -C /Users/rodrigozepedatello/Documents/VariantesCovid add .
+/usr/local/bin/git -C /Users/rodrigozepedatello/Documents/VariantesCovid commit -m "Actualización ${date}"
+/usr/local/bin/git -C /Users/rodrigozepedatello/Documents/VariantesCovid push origin main

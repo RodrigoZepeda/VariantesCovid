@@ -83,6 +83,20 @@ flowchart TD;
     b-->e[<code>analisis_variantes.R</code><br>Genera el reporte<br>diario de variantes];
 ```
 
+## Instalar
+
+1. Copia este repositorio en tu computadora 
+```bash
+git clone git@github.com:RodrigoZepeda/VariantesCovid.git
+```
+
+2. Usando `conda` instala los ambientes en los archivos `yml` (son dos distintos):
+```bash
+conda env create -f environment.yml
+conda env create -f pangolin_environment.yml
+```
+
+
 ## Referencias de GISAID
 
 Khare, S., et al (2021) _GISAID’s Role in Pandemic Response._ China CDC Weekly, 3(49): 1049-1051. [doi:10.46234/ccdcw2021.255](doi:10.46234/ccdcw2021.255)  PMCID: 8668406
