@@ -1,7 +1,7 @@
 #!/bin/bash
 #Se encarga de procesar con pangolin
 #https://stackoverflow.com/questions/34534513/calling-conda-source-activate-from-bash-script
-eval "$(/usr/local/Caskroom/miniconda/base/condabin/mamba shell.bash hook)"
+eval "$(/usr/local/Caskroom/miniconda/base/bin/conda shell.bash hook)"
 mamba activate pangolin
 for varname in $(ls fasta)
 do
