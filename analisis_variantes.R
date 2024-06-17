@@ -10,7 +10,7 @@ pacman::p_load(
 )
 
 flag <- FALSE
-attempts <- 10 # Intentos de descarga
+attempts <- -Inf # Intentos de descarga
 dbdir <- "datos_variantes.duckdb"
 
 # Removemos los datos para no sobreescribirlos

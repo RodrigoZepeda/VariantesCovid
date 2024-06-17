@@ -13,6 +13,7 @@ fasta/
 *.crdownload
 variant_surveillance_tsv_*
 .org*
+.com.google.Chrome*
 
 # User-specific stuff
 .idea/
