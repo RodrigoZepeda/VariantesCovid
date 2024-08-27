@@ -20,9 +20,9 @@ if (file.exists(dbdir)) {
 
 # Environment de conda
 # Install pangolin in a different conda env as the other GISAID stuff is incompatible
-if (Sys.info()["user"] == "rod" && Sys.info()["sysname"] == "Darwin") {
-  conda_path <- "/usr/local/Caskroom/miniconda/base/envs/GISAID/bin/python3"
-  conda_path_pango <- "/usr/local/Caskroom/miniconda/base/envs/pangolin/bin/python3"
+if (Sys.info()["user"] == "rodrigozepedatello" && Sys.info()["sysname"] == "Darwin") {
+  conda_path <- "/usr/local/Caskroom/miniconda/base/envs/GISAID/bin/python"
+  conda_path_pango <- "/usr/local/Caskroom/miniconda/base/envs/pangolin/bin/python"
 } else if (Sys.info()["user"] == "rod" & Sys.info()["sysname"] == "Linux") {
   conda_path <- "/home/rod/miniconda3/envs/GISAID/bin/python3"
   conda_path_pango <- "/home/rod/miniconda3/envs/pangolin/bin/python3"
